@@ -1,0 +1,58 @@
+@model MultiTrack.Models.KitapTakip
+@{
+    Layout = null;
+    int kalanSayfa = Model.ToplamSayfa - Model.KalinanSayfa;
+    int yuzde = Model.ToplamSayfa > 0 ? (Model.KalinanSayfa * 100) / Model.ToplamSayfa : 0;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>MultiTrack | Kitap Takibi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body { background-color: #eef3fb; font-family: sans-serif; min-height: 100vh; margin: 0; padding: 20px; }
+        .kitap-container { background: white; border-radius: 24px; max-width: 760px; margin: 20px auto 0; padding: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.05); }
+        .main-card { background: #1a253c; border-radius: 16px; color: white; text-align: center; padding: 30px 20px; margin-bottom: 20px; }
+        .form-control { border-radius: 12px; padding: 12px; text-align: center; font-weight: 600; margin-bottom: 10px; }
+        .btn-action { width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; border: none; }
+    </style>
+</head>
+<body>
+    <partial name="_DashboardHeader" />
+
+<div class="kitap-container">
+    <a href="/Dashboard/Index?user=@ViewBag.Username" class="btn btn-link mb-3"><i class="bi bi-arrow-left"></i> Geri Dön</a>
+
+    <div class="main-card">
+        <h3>@Model.KitapAdi</h3>
+        <div class="fs-1 fw-bold">@Model.KalinanSayfa / @Model.ToplamSayfa</div>
+        <p class="opacity-75">Sayfa İlerlemesi</p>
+    </div>
+
+    <form asp-action="IlerlemeyiKaydet" method="post" class="mb-4">
+        <input type="hidden" name="user" value="@ViewBag.Username" />
+        <label class="fw-bold mb-2">Kaçıncı Sayfadasın?</label>
+        <input type="number" name="kalinanSayfa" class="form-control" value="@Model.KalinanSayfa" min="0" max="@Model.ToplamSayfa">
+        <button type="submit" class="btn btn-primary btn-action">İlerlemeyi Kaydet</button>
+    </form>
+
+    <div class="row text-center mb-4">
+        <div class="col-6"><strong>Kalan:</strong> @kalanSayfa</div>
+        <div class="col-6"><strong>Tamamlanan:</strong> %@yuzde</div>
+    </div>
+
+    <hr>
+
+    <form action="/Dashboard/KitabiGuncelle" method="post">
+        <input type="hidden" name="user" value="@ViewBag.Username" />
+        <input type="text" name="kitapAdi" class="form-control" value="@Model.KitapAdi" required>
+        <input type="number" name="toplamSayfa" class="form-control" value="@Model.ToplamSayfa" min="1" required>
+        <button type="submit" class="btn btn-dark btn-action">Bilgileri Kaydet</button>
+    </form>
+</div>
+
+</body>
+</html>

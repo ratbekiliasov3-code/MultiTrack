@@ -1,0 +1,193 @@
+@model IEnumerable<MultiTrack.Models.Gorev>
+
+@{
+    Layout = null;
+    var planSayilariDict = ViewBag.PlanSayilari as Dictionary<DateTime, int> ?? new Dictionary<DateTime, int>();
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Günlük Plan</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #0b111e !important;
+            color: #ffffff !important;
+        }
+        .calendar-container {
+            background-color: #111827;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .calendar-day {
+            background-color: #1f2937;
+            color: #9ca3af;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            text-decoration: none !important;
+            display: block;
+            transition: background 0.2s;
+        }
+        .calendar-day:hover {
+            background-color: #374151;
+            color: #ffffff;
+        }
+        .calendar-day.active {
+            background-color: #3b82f6 !important;
+            color: #ffffff !important;
+        }
+        .plan-input {
+            background-color: #ffffff;
+            color: #000000;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            width: 100%;
+        }
+        .btn-ekle {
+            background-color: #2563eb;
+            color: white;
+            border-radius: 8px;
+            padding: 12px 24px;
+            border: none;
+        }
+        .plan-list-item {
+            background-color: #1f2937;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <partial name="_DashboardHeader" />
+
+<div class="container-fluid px-5 mt-5">
+    <div class="row gx-5">
+        
+        <div class="col-xl-7 col-lg-7 col-md-6 col-12 mb-4">
+            <h2 class="fw-bold mb-4">Günlük Plan</h2>
+            
+            <div class="d-flex align-items-center mb-4 gap-2">
+                @{
+                    DateTime dt;
+                    if (!DateTime.TryParse(ViewBag.TarihParam, out dt)) { dt = DateTime.Today; }
+                    string oncekiTarih = dt.AddDays(-1).ToString("yyyy-MM-dd");
+                    string sonrakiTarih = dt.AddDays(1).ToString("yyyy-MM-dd");
+                }
+                <a href="/Dashboard/GunlukPlan?user=@ViewBag.Username&tarih=@oncekiTarih" class="btn btn-outline-light">&lt;</a>
+                <span class="badge bg-secondary px-3 py-2 fs-6">@ViewBag.SecilenTarih</span>
+                <a href="/Dashboard/GunlukPlan?user=@ViewBag.Username&tarih=@sonrakiTarih" class="btn btn-outline-light">&gt;</a>
+                
+                <a href="/Dashboard/GunlukPlan?user=@ViewBag.Username&tarih=@ViewBag.BugunParam" class="btn btn-primary ms-2">Bugüne Git</a>
+            </div>
+
+            <form asp-action="PlanEkle" method="post" class="d-flex gap-2 mb-4">
+    <input type="hidden" name="user" value="@ViewBag.Username" />
+    <input type="hidden" name="tarih" value="@ViewBag.TarihParam" />
+    
+    <input type="text" name="baslik" class="plan-input" placeholder="Plan ekle..." autocomplete="off" required />
+    
+    <button type="submit" class="btn btn-ekle">Ekle</button>
+</form>
+
+            <h4 class="mt-4 mb-3">Bugünün Planları</h4>
+            <div id="planListesi">
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var plan in Model)
+                    {
+                        string textStyle = plan.IsCompleted ? "text-decoration: line-through; color: #10b981; opacity: 0.6;" : "";
+                        string bgStyle = plan.IsCompleted ? "border-left: 4px solid #10b981;" : "";
+
+                        <div class="plan-list-item d-flex justify-content-between align-items-center" style="@bgStyle">
+                            <span style="@textStyle">@plan.Baslik</span>
+                            
+                            <div class="d-flex gap-2">
+                                <form asp-action="PlanTamamla" method="post" style="display:inline; margin:0;">
+                                    <input type="hidden" name="id" value="@plan.Id" />
+                                    <input type="hidden" name="user" value="@ViewBag.Username" />
+                                    <input type="hidden" name="tarih" value="@ViewBag.TarihParam" />
+                                    
+                                    @if (plan.IsCompleted)
+                                    {
+                                        <button type="submit" class="btn btn-sm btn-success">✓ Yapıldı</button>
+                                    }
+                                    else
+                                    {
+                                        <button type="submit" class="btn btn-sm btn-outline-success">Tamamla</button>
+                                    }
+                                </form>
+
+                                <form asp-action="PlanSil" method="post" style="display:inline; margin:0;">
+                                    <input type="hidden" name="id" value="@plan.Id" />
+                                    <input type="hidden" name="user" value="@ViewBag.Username" />
+                                    <input type="hidden" name="tarih" value="@ViewBag.TarihParam" />
+                                    <button type="submit" class="btn btn-sm btn-danger">Sil</button>
+                                </form>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="p-3 text-muted border border-secondary rounded">Bugün plan yok</div>
+                }
+            </div>
+        </div>
+
+        <div class="col-xl-5 col-lg-5 col-md-6 col-12">
+            <div class="calendar-container">
+                
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    @{
+                        DateTime baslangicTarihi = new DateTime(ViewBag.SecilenYil, ViewBag.SecilenAy, 1);
+                        string oncekiAyTarih = baslangicTarihi.AddMonths(-1).ToString("yyyy-MM-dd");
+                        string sonrakiAyTarih = baslangicTarihi.AddMonths(1).ToString("yyyy-MM-dd");
+                    }
+                    <a href="/Dashboard/GunlukPlan?user=@ViewBag.Username&tarih=@oncekiAyTarih" class="btn btn-sm btn-outline-light">&lt;</a>
+                    <h5 class="m-0 text-capitalize fw-bold">@ViewBag.MevcutAyYil</h5>
+                    <a href="/Dashboard/GunlukPlan?user=@ViewBag.Username&tarih=@sonrakiAyTarih" class="btn btn-sm btn-outline-light">&gt;</a>
+                </div>
+
+                <div class="row g-2 row-cols-7 text-center text-muted small mb-2">
+                    <div class="col">P</div><div class="col">S</div><div class="col">Ç</div>
+                    <div class="col">P</div><div class="col">C</div><div class="col">C</div><div class="col">P</div>
+                </div>
+                
+                <div class="row g-2 row-cols-7">
+                    @for (int space = 1; space < ViewBag.FirstDayOfWeek; space++)
+                    {
+                        <div class="col"></div>
+                    }
+
+                    @for (int i = 1; i <= ViewBag.DaysInMonth; i++)
+                    {
+                        DateTime gunTarih = new DateTime(ViewBag.SecilenYil, ViewBag.SecilenAy, i);
+                        string gunTarihStr = gunTarih.ToString("yyyy-MM-dd");
+                        string activeClass = (ViewBag.TarihParam == gunTarihStr) ? "active" : "";
+                        
+                        // YENİ: O güne ait gerçek plan sayısını sözlükten alıyoruz
+                        int toplamPlan = planSayilariDict.ContainsKey(gunTarih.Date) ? planSayilariDict[gunTarih.Date] : 0;
+                        
+                        <div class="col">
+                            <a href="/Dashboard/GunlukPlan?user=@ViewBag.Username&tarih=@gunTarihStr" class="calendar-day @activeClass">
+                                <div>@i</div>
+                                <div style="font-size: 10px; opacity: 0.8;">@toplamPlan plan</div>
+                            </a>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+</body>
+</html>

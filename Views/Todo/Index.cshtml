@@ -1,0 +1,35 @@
+@model List<MultiTrack.Models.TodoItem>
+
+<h1>Todo Listesi</h1>
+
+<!-- FORM -->
+<form asp-action="Add" method="post">
+    <input type="text" name="title" placeholder="Yeni görev yaz..." />
+    <button type="submit">Ekle</button>
+</form>
+
+<hr />
+
+<!-- LİSTE -->
+<ul>
+@foreach (var item in Model)
+{
+<li>
+    @item.Title
+
+    @if(item.IsDone)
+    {
+        <span>✅</span>
+    }
+    else
+    {
+        <span>❌</span>
+    }
+
+    <form asp-action="Delete" method="post" style="display:inline;">
+        <input type="hidden" name="id" value="@item.Id" />
+        <button type="submit">Sil</button>
+    </form>
+</li>
+}
+</ul>

@@ -1,0 +1,106 @@
+@model MultiTrack.Models.DashboardIstatistikViewModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>İstatistikler - MultiTrack</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background:#eef3fb; font-family: Arial, Helvetica, sans-serif; }
+        .container { padding: 24px; }
+        .stat-card { border-radius:12px; background:#fff; padding:18px; box-shadow:0 4px 12px rgba(0,0,0,0.06); }
+        .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
+        @@media(max-width:900px){ .grid{grid-template-columns:repeat(2,1fr);} }
+        @@media(max-width:600px){ .grid{grid-template-columns:1fr;} }
+    </style>
+</head>
+<body>
+    <partial name="_DashboardHeader" />
+
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3>İstatistikler - @Model.Username</h3>
+            <a href="/Dashboard" class="btn btn-sm btn-secondary">Geri</a>
+        </div>
+
+        <div class="grid mb-3">
+            <div class="stat-card">
+                <h5>Su (Son 7 Gün)</h5>
+                <canvas id="waterChart" height="120"></canvas>
+                <div class="mt-2">Toplam: <strong>@Model.WaterTotalLast7Days.ToString("0.##") L</strong> • Ortalama: <strong>@Model.WaterAverageLast7Days.ToString("0.##") L</strong></div>
+            </div>
+
+            <div class="stat-card">
+                <h5>Spor (Bu Ay)</h5>
+                <div class="mt-2">Toplam Antrenman: <strong>@Model.TotalWorkoutsThisMonth</strong></div>
+                <div>Tamamlanan: <strong>@Model.CompletedWorkoutsThisMonth</strong></div>
+                <div>Başarı Oranı: <strong>@Model.WorkoutCompletionRate.ToString("0.##")%</strong></div>
+            </div>
+
+            <div class="stat-card">
+                <h5>Harcama (Bu Ay)</h5>
+                <div class="mt-2">Toplam: <strong>@Model.MonthlyExpenseTotal.ToString("0.00") ₺</strong></div>
+                <div>İşlem Sayısı: <strong>@Model.ExpenseCountThisMonth</strong></div>
+                <div>Günlük Ortalama: <strong>@Model.AverageDailyExpense.ToString("0.00") ₺</strong></div>
+            </div>
+        </div>
+
+        <div class="grid">
+            <div class="stat-card">
+                <h5>Kitap Okuma</h5>
+                <div class="mt-2">Kitap: <strong>@Model.CurrentBook</strong></div>
+                <div>Sayfa: <strong>@Model.PagesRead</strong> / <strong>@Model.TotalPages</strong></div>
+                <div>İlerleme: <strong>@Model.ReadingProgress.ToString("0.##")%</strong></div>
+            </div>
+
+            <div class="stat-card">
+                <h5>Görevler (Bu Ay)</h5>
+                <div class="mt-2">Toplam: <strong>@Model.TotalTasksThisMonth</strong></div>
+                <div>Tamamlanan: <strong>@Model.CompletedTasksThisMonth</strong></div>
+                <div>Tamamlama Oranı: <strong>@Model.TaskCompletionRate.ToString("0.##")%</strong></div>
+            </div>
+
+            <div class="stat-card">
+                <h5>Özet</h5>
+                <ul class="mt-2 mb-0">
+                    <li>Su Toplamı (7 gün): @Model.WaterTotalLast7Days.ToString("0.##") L</li>
+                    <li>Antrenmanlar (ay): @Model.TotalWorkoutsThisMonth</li>
+                    <li>Harcama (ay): @Model.MonthlyExpenseTotal.ToString("0.00") ₺</li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        (function(){
+            const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.WaterDaysLabels ?? new List<string>()));
+            const data = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.WaterDataLast7Days ?? new List<double>()));
+
+            const ctx = document.getElementById('waterChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Litre',
+                        data: data,
+                        backgroundColor: '#4c8fe8'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

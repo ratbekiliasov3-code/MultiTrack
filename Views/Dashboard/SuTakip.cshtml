@@ -1,0 +1,446 @@
+@model MultiTrack.Models.DashboardSuTakipViewModel
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MultiTrack | Su Takip</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <style>
+        body {
+            background-color: #eef3fb;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .su-container {
+            background-color: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 760px;
+            margin: 20px auto 0;
+            padding: 25px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .btn-back {
+            color: #4c8fe8;
+            text-decoration: none;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .user-badge {
+            color: #7a869a;
+            font-weight: bold;
+        }
+
+        .main-card {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 16px;
+            color: white;
+            text-align: center;
+            padding: 30px 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 6px 15px rgba(79, 172, 254, 0.3);
+        }
+
+        .main-card .title {
+            font-size: 16px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        .main-card .amount {
+            font-size: 36px;
+            font-weight: 800;
+            margin: 5px 0;
+        }
+
+        .main-card .target {
+            font-size: 14px;
+            opacity: 0.8;
+        }
+
+        .grid-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .btn-water {
+            border: none;
+            border-radius: 12px;
+            padding: 12px;
+            font-weight: bold;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .btn-plus {
+            background-color: #e1f0ff;
+            color: #007bff;
+        }
+
+        .btn-plus:hover {
+            background-color: #cce4ff;
+        }
+
+        .btn-minus {
+            background-color: #f4f6f9;
+            color: #7a869a;
+        }
+
+        .btn-minus:hover {
+            background-color: #e9ecef;
+        }
+
+        .btn-reset {
+            width: 100%;
+            background-color: #fff1f1;
+            color: #dc3545;
+            border: 1px solid #ffdede;
+            padding: 12px;
+            border-radius: 12px;
+            font-weight: bold;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        .btn-reset:hover {
+            background-color: #ffe3e3;
+        }
+
+        .stats-box {
+            background-color: #f8fafc;
+            border: 1px dashed #e2e8f0;
+            border-radius: 14px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .stats-title {
+            font-size: 12px;
+            color: #7a869a;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .stats-value {
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a253c;
+        }
+
+        .btn-today {
+            display: block;
+            width: fit-content;
+            margin: 0 auto 20px auto;
+            background-color: #3b82f6;
+            color: white;
+            border: none;
+            padding: 6px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: bold;
+            color: #4a5568;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            text-align: center;
+        }
+
+        .calendar-day {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            padding: 8px 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: #4a5568;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 45px;
+        }
+
+        .calendar-day span {
+            font-size: 9px;
+            color: #94a3b8;
+            margin-top: 2px;
+        }
+
+        .calendar-day.active {
+            background-color: #bae6fd;
+            color: #0369a1;
+            border: 1px solid #7dd3fc;
+        }
+    </style>
+</head>
+<body>
+    <partial name="_DashboardHeader" />
+
+<div class="su-container">
+    <div class="main-card">
+        <div class="title" id="cardTitleText"><i class="bi bi-droplet-fill"></i> Bugün</div>
+        <div class="amount" id="todayAmount">0 ml</div>
+        <div class="target">Hedef: 3000 ml</div>
+    </div>
+
+    <div class="grid-buttons">
+        <button class="btn-water btn-plus" onclick="addWater(250)">+250 ml</button>
+        <button class="btn-water btn-plus" onclick="addWater(500)">+500 ml</button>
+        <button class="btn-water btn-minus" onclick="addWater(-250)">-250 ml</button>
+        <button class="btn-water btn-minus" onclick="addWater(-500)">-500 ml</button>
+    </div>
+
+    <button class="btn-reset" onclick="resetToday()"><i class="bi bi-trash3"></i> Seçili Günü Sıfırla</button>
+
+    <div class="stats-box">
+        <div>
+            <div class="stats-title">Aylık Toplam Tüketim</div>
+            <div class="stats-value" id="monthlyTotal">0 Litre</div>
+        </div>
+        <div class="text-muted"><i class="bi bi-graph-up-arrow fs-4"></i></div>
+    </div>
+
+    <button class="btn-today" onclick="selectToday()">Bugüne Git</button>
+
+    <div class="calendar-header">
+        <i class="bi bi-chevron-left" style="cursor:pointer;" onclick="changeMonth(-1)"></i>
+        <span id="calendarMonthYear">Mayıs 2026</span>
+        <i class="bi bi-chevron-right" style="cursor:pointer;" onclick="changeMonth(1)"></i>
+    </div>
+
+    <div class="calendar-grid" id="calendarGrid"></div>
+</div>
+
+<script>
+    // Sistem tarihlerini yönetmek için global değişkenler
+    let currentDate = new Date(); // Gerçek şu anki zaman
+    let selectedDate = new Date("@Model.SecilenTarih.ToString("yyyy-MM-dd")"); // Kullanıcının tıkladığı aktif gün
+    const username = "@Model.Username";
+
+    // Veritabanından gelen su verileri (ml cinsinden)
+    let waterDatabase = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.WaterByDateMl));
+
+    const months = [
+        "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", 
+        "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
+    ];
+
+    // Sayfa ilk yüklendiğinde takvimi çalıştırır
+    document.addEventListener("DOMContentLoaded", () => {
+        renderCalendar();
+    });
+
+    // Tarihi YYYY-MM-DD formatına çeviren yardımcı fonksiyon
+    function formatDate(date) {
+        let d = new Date(date);
+        let month = '' + (d.getMonth() + 1);
+        let day = '' + d.getDate();
+        let year = d.getFullYear();
+
+        if (month.length < 2) month = '0' + month;
+        if (day.length < 2) day = '0' + day;
+
+        return [year, month, day].join('-');
+    }
+
+    // Takvimi Oluşturan ve Güncelleyen Ana Fonksiyon
+    function renderCalendar() {
+        const grid = document.getElementById("calendarGrid");
+        const monthYearLabel = document.getElementById("calendarMonthYear");
+        
+        grid.innerHTML = ""; // İçeriği temizle
+        
+        let year = selectedDate.getFullYear();
+        let month = selectedDate.getMonth();
+        
+        monthYearLabel.innerText = `${months[month]} ${year}`;
+
+        // Ayın ilk gününün haftanın hangi gününe denk geldiğini bul
+        let firstDayIndex = new Date(year, month, 1).getDay();
+        // Pazar 0 geldiği için Pazartesi'yi 1. gün yapmak adına düzeltme:
+        if (firstDayIndex === 0) firstDayIndex = 7; 
+
+        // Ayda toplam kaç gün olduğunu bul
+        let totalDays = new Date(year, month + 1, 0).getDate();
+
+        // Takvim düzeninin bozulmaması için ilk gün öncesindeki boşlukları oluştur
+        for (let i = 1; i < firstDayIndex; i++) {
+            const emptyDiv = document.createElement("div");
+            emptyDiv.className = "calendar-day text-muted opacity-25";
+            emptyDiv.innerHTML = "-";
+            grid.appendChild(emptyDiv);
+        }
+
+        // Ayın günlerini tek tek oluşturup ekle
+        for (let day = 1; day <= totalDays; day++) {
+            let loopDate = new Date(year, month, day);
+            let dateKey = formatDate(loopDate);
+            let savedMl = waterDatabase[dateKey] || 0;
+
+            const dayDiv = document.createElement("div");
+            dayDiv.className = "calendar-day";
+            
+            // Eğer döngüdeki gün, seçili gün ise mavi aktif klası giydir
+            if (formatDate(selectedDate) === dateKey) {
+                dayDiv.classList.add("active");
+            }
+
+            // Alt yazıyı belirle (- veya değer ml)
+            let subText = savedMl > 0 ? savedMl + "ml" : "-";
+            dayDiv.innerHTML = `${day} <span>${subText}</span>`;
+
+            // Güne tıklanınca çalışacak olay
+            dayDiv.onclick = () => {
+                selectedDate = loopDate;
+                renderCalendar();
+            };
+
+            grid.appendChild(dayDiv);
+        }
+
+        // Üst paneldeki bilgileri ve aylık toplam tüketimi güncelle
+        updateMainUI();
+    }
+
+    // Seçili gün değiştikçe üst kartı ve istatistiği günceller
+    function updateMainUI() {
+        let dateKey = formatDate(selectedDate);
+        let currentWater = waterDatabase[dateKey] || 0;
+        
+        // Üst kart başlığı ayarla (Bugün mü yoksa başka gün mü)
+        const cardTitle = document.getElementById("cardTitleText");
+        if (formatDate(currentDate) === dateKey) {
+            cardTitle.innerHTML = `<i class="bi bi-droplet-fill"></i> Bugün`;
+        } else {
+            cardTitle.innerHTML = `<i class="bi bi-calendar-event"></i> ${selectedDate.getDate()} ${months[selectedDate.getMonth()]}`;
+        }
+
+        // Seçili günün miktarını ekrana bas
+        document.getElementById('todayAmount').innerText = currentWater + " ml";
+
+        // --- AYLIK TOPLAM HESAPLAMA ---
+        let totalMonthMl = 0;
+        let currentYear = selectedDate.getFullYear();
+        let currentMonth = selectedDate.getMonth();
+
+        // Hafızadaki tüm kayıtları gezip sadece o aya ait olanları toplar
+        for (let key in waterDatabase) {
+            let recordDate = new Date(key);
+            if (recordDate.getFullYear() === currentYear && recordDate.getMonth() === currentMonth) {
+                totalMonthMl += waterDatabase[key];
+            }
+        }
+
+        let liters = (totalMonthMl / 1000).toFixed(1);
+        document.getElementById('monthlyTotal').innerText = liters + " Litre";
+    }
+
+    // Su Ekleme ve Çıkarma Butonları Fonksiyonu
+    async function addWater(amount) {
+        let dateKey = formatDate(selectedDate);
+        let currentWater = waterDatabase[dateKey] || 0;
+
+        currentWater += amount;
+        if (currentWater < 0) currentWater = 0; // Sıfırın altına düşmesin
+
+        await postWater(currentWater);
+        waterDatabase[dateKey] = currentWater;
+
+        // Takvimi ve arayüzü anında yenile
+        renderCalendar();
+    }
+
+    // Seçili Günü Sıfırlama Fonksiyonu
+    async function resetToday() {
+        let dateKey = formatDate(selectedDate);
+        delete waterDatabase[dateKey];
+        await deleteWater();
+
+        // Yenile
+        renderCalendar();
+    }
+
+    async function postWater(valueMl) {
+        const response = await fetch('/Dashboard/SuEkle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                user: username,
+                tarih: formatDate(selectedDate),
+                miktar: valueMl
+            })
+        });
+
+        if (!response.ok) {
+            alert('Su verisi kaydedilemedi. Lütfen sayfayı yenileyip tekrar deneyin.');
+        }
+    }
+
+    async function deleteWater() {
+        const response = await fetch('/Dashboard/SuTemizle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                user: username,
+                tarih: formatDate(selectedDate)
+            })
+        });
+
+        if (!response.ok) {
+            alert('Su verisi sıfırlanamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+        }
+    }
+
+    // "Bugüne Git" Butonunun Fonksiyonu
+    function selectToday() {
+        selectedDate = new Date(currentDate); // Aktif seçimi gerçek bugüne eşitle
+        renderCalendar();
+    }
+
+    // Ay Değiştirme Ok Butonları Fonksiyonu (Chevronlar)
+    function changeMonth(direction) {
+        selectedDate.setMonth(selectedDate.getMonth() + direction);
+        renderCalendar();
+    }
+</script>
+</body>
+</html>

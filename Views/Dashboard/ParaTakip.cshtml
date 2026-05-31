@@ -1,0 +1,282 @@
+@model MultiTrack.Models.DashboardParaTakipViewModel
+@{
+    Layout = null;
+    var culture = new System.Globalization.CultureInfo("tr-TR");
+}
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MultiTrack | Harcama Takip</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: #eef3fb;
+        }
+
+        .navbar {
+            background-color: #112240;
+            padding: 15px 40px;
+        }
+
+        .logo {
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: -0.5px;
+        }
+
+        .logo span {
+            color: #ffd700;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: white;
+        }
+
+        .profile-img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #dcdcdc;
+            object-fit: cover;
+        }
+
+        .page-content {
+            padding: 30px 40px 50px;
+        }
+
+        .page-title {
+            margin-bottom: 10px;
+            font-size: 28px;
+            font-weight: 700;
+            color: #112240;
+        }
+
+        .page-subtitle {
+            color: #5f6d8a;
+            margin-bottom: 25px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(220px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .summary-card {
+            background: white;
+            border-radius: 20px;
+            padding: 24px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+            min-height: 140px;
+        }
+
+        .summary-card h3 {
+            margin: 0;
+            font-size: 32px;
+            color: #112240;
+        }
+
+        .summary-card p {
+            margin: 8px 0 0;
+            color: #6e7a96;
+        }
+
+        .expense-panel {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 25px;
+        }
+
+        .expense-panel .card {
+            border-radius: 20px;
+            box-shadow: 0 4px 18px rgba(0,0,0,0.08);
+        }
+
+        .expense-panel .card-body {
+            padding: 24px;
+        }
+
+        .expense-form .form-control,
+        .expense-form .form-select {
+            border-radius: 12px;
+            border: 1px solid #ced4da;
+            padding: 14px 16px;
+        }
+
+        .expense-form label {
+            font-weight: 600;
+            color: #3f4a65;
+        }
+
+        .expense-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .expense-table th,
+        .expense-table td {
+            padding: 12px 14px;
+            vertical-align: middle;
+        }
+
+        .expense-table th {
+            background: #f7f9fc;
+            color: #4f5d78;
+            text-align: left;
+            font-weight: 700;
+        }
+
+        .expense-table tbody tr {
+            background: white;
+        }
+
+        .expense-table tbody tr + tr {
+            border-top: 1px solid #edf0f6;
+        }
+
+        .badge-danger {
+            background-color: #ef4a4a;
+        }
+
+        .btn-back {
+            background-color: transparent;
+            border: 1px solid rgba(255,255,255,.2);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 12px;
+            transition: background .2s;
+        }
+
+        .btn-back:hover {
+            background-color: rgba(255,255,255,.12);
+            color: white;
+        }
+
+        @@media (max-width: 1100px) {
+            .expense-panel { grid-template-columns: 1fr; }
+        }
+
+        @@media (max-width: 768px) {
+            .page-content { padding: 20px; }
+            .summary-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <partial name="_DashboardHeader" />
+
+    <div class="page-content container">
+        <div class="d-flex align-items-center justify-content-between mb-4">
+            <div>
+                <div class="page-title">Harcama Takip</div>
+                <div class="page-subtitle">Bugünün harcama detaylarını ekleyin ve aylık toplamınızı takip edin.</div>
+            </div>
+            <a href="/Dashboard/Index?user=@Model.Username" class="btn-back">Geri Dön</a>
+        </div>
+
+        <div class="summary-grid">
+            <div class="summary-card">
+                <p>Bugün</p>
+                <h3>@Model.TodayTotal.ToString("0.00") ₺</h3>
+                <p>@Model.Tarih.ToString("dd MMMM yyyy", culture)</p>
+            </div>
+            <div class="summary-card">
+                <p>Bu Ay</p>
+                <h3>@Model.MonthlyTotal.ToString("0.00") ₺</h3>
+                <p>@Model.Tarih.ToString("MMMM yyyy", culture)</p>
+            </div>
+            <div class="summary-card">
+                <p>Toplam Harcama</p>
+                <h3>@Model.TotalAmount.ToString("0.00") ₺</h3>
+                <p>Bu liste tüm harcamalarınızı gösterir.</p>
+            </div>
+        </div>
+
+        <div class="expense-panel">
+            <div class="card">
+                <div class="card-body expense-form">
+                    <h5 class="mb-4">Yeni Harcama Ekle</h5>
+                    <form method="post" action="/Dashboard/HarcamaEkle">
+                        <input type="hidden" name="user" value="@Model.Username" />
+                        <div class="mb-3">
+                            <label for="tarih" class="form-label">Tarih</label>
+                            <input type="date" class="form-control" id="tarih" name="tarih" value="@Model.Tarih.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="aciklama" class="form-label">Açıklama</label>
+                            <input type="text" class="form-control" id="aciklama" name="aciklama" placeholder="Kahve, market, ulaşım..." required />
+                        </div>
+                        <div class="mb-3">
+                            <label for="tutar" class="form-label">Tutar (₺)</label>
+                            <input type="number" step="0.01" min="0" class="form-control" id="tutar" name="tutar" placeholder="0.00" required />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100" style="border-radius: 12px; padding: 12px;">Ekle</button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <div>
+                            <h5 class="mb-0">Harcama Detayları</h5>
+                            <small class="text-muted">Son eklenen harcamalarınız</small>
+                        </div>
+                        <span class="badge bg-primary">@Model.Expenses.Count adet</span>
+                    </div>
+
+                    @if (!Model.Expenses.Any())
+                    {
+                        <div class="text-center text-muted py-5">Henüz kayıtlı harcamanız yok.</div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="expense-table w-100">
+                                <thead>
+                                    <tr>
+                                        <th>Açıklama</th>
+                                        <th>Tarih</th>
+                                        <th class="text-end">Tutar</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var item in Model.Expenses)
+                                    {
+                                        <tr>
+                                            <td>@item.Aciklama</td>
+                                            <td>@item.Tarih.ToString("dd.MM.yyyy")</td>
+                                            <td class="text-end">@item.Tutar.ToString("0.00") ₺</td>
+                                            <td class="text-end">
+                                                <form method="post" action="/Dashboard/HarcamaSil" style="display:inline;">
+                                                    <input type="hidden" name="id" value="@item.Id" />
+                                                    <input type="hidden" name="user" value="@Model.Username" />
+                                                    <input type="hidden" name="tarih" value="@Model.Tarih.ToString("yyyy-MM-dd")" />
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Sil</button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
