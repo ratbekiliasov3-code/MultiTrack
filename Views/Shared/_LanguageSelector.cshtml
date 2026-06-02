@@ -1,0 +1,23 @@
+@{
+    var currentLang = LanguageHelper.GetCurrentLanguage(Context);
+}
+<div class="language-selector">
+    <select id="langSelect" class="lang-select" aria-label="@LanguageHelper.T(Context, "LanguageSelectLabel")">
+        @foreach (var option in LanguageHelper.GetLanguageOptions())
+        {
+            <option value="@option.Code" selected="@(option.Code == currentLang ? "selected" : null)">@option.Label</option>
+        }
+    </select>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var langSelect = document.getElementById('langSelect');
+        if (!langSelect) return;
+
+        langSelect.addEventListener('change', function () {
+            var returnUrl = window.location.pathname + window.location.search;
+            var target = '@Url.Action("SetLanguage", "Home")';
+            window.location.href = target + '?lang=' + encodeURIComponent(this.value) + '&returnUrl=' + encodeURIComponent(returnUrl);
+        });
+    });
+</script>

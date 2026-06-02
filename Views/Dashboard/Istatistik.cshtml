@@ -4,11 +4,11 @@
 }
 
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@LanguageHelper.GetCurrentLanguage(Context).ToLowerInvariant()">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>İstatistikler - MultiTrack</title>
+    <title>@LanguageHelper.T(Context, "StatisticsTitle") - MultiTrack</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -25,26 +25,26 @@
 
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3>İstatistikler - @Model.Username</h3>
-            <a href="/Dashboard" class="btn btn-sm btn-secondary">Geri</a>
+            <h3>@LanguageHelper.T(Context, "StatisticsTitle") - @Model.Username</h3>
+            <a href="/Dashboard" class="btn btn-sm btn-secondary">@LanguageHelper.T(Context, "BackButton")</a>
         </div>
 
         <div class="grid mb-3">
             <div class="stat-card">
-                <h5>Su (Son 7 Gün)</h5>
+                <h5>@LanguageHelper.T(Context, "SummaryWaterTotal")</h5>
                 <canvas id="waterChart" height="120"></canvas>
                 <div class="mt-2">Toplam: <strong>@Model.WaterTotalLast7Days.ToString("0.##") L</strong> • Ortalama: <strong>@Model.WaterAverageLast7Days.ToString("0.##") L</strong></div>
             </div>
 
             <div class="stat-card">
-                <h5>Spor (Bu Ay)</h5>
+                <h5>@LanguageHelper.T(Context, "SportsThisMonthTitle")</h5>
                 <div class="mt-2">Toplam Antrenman: <strong>@Model.TotalWorkoutsThisMonth</strong></div>
                 <div>Tamamlanan: <strong>@Model.CompletedWorkoutsThisMonth</strong></div>
                 <div>Başarı Oranı: <strong>@Model.WorkoutCompletionRate.ToString("0.##")%</strong></div>
             </div>
 
             <div class="stat-card">
-                <h5>Harcama (Bu Ay)</h5>
+                <h5>@LanguageHelper.T(Context, "ExpenseThisMonthTitle")</h5>
                 <div class="mt-2">Toplam: <strong>@Model.MonthlyExpenseTotal.ToString("0.00") ₺</strong></div>
                 <div>İşlem Sayısı: <strong>@Model.ExpenseCountThisMonth</strong></div>
                 <div>Günlük Ortalama: <strong>@Model.AverageDailyExpense.ToString("0.00") ₺</strong></div>
@@ -53,25 +53,25 @@
 
         <div class="grid">
             <div class="stat-card">
-                <h5>Kitap Okuma</h5>
+                <h5>@LanguageHelper.T(Context, "ReadingProgressTitle")</h5>
                 <div class="mt-2">Kitap: <strong>@Model.CurrentBook</strong></div>
                 <div>Sayfa: <strong>@Model.PagesRead</strong> / <strong>@Model.TotalPages</strong></div>
                 <div>İlerleme: <strong>@Model.ReadingProgress.ToString("0.##")%</strong></div>
             </div>
 
             <div class="stat-card">
-                <h5>Görevler (Bu Ay)</h5>
+                <h5>@LanguageHelper.T(Context, "TasksTitle")</h5>
                 <div class="mt-2">Toplam: <strong>@Model.TotalTasksThisMonth</strong></div>
                 <div>Tamamlanan: <strong>@Model.CompletedTasksThisMonth</strong></div>
                 <div>Tamamlama Oranı: <strong>@Model.TaskCompletionRate.ToString("0.##")%</strong></div>
             </div>
 
             <div class="stat-card">
-                <h5>Özet</h5>
+                <h5>@LanguageHelper.T(Context, "SummaryTitle")</h5>
                 <ul class="mt-2 mb-0">
-                    <li>Su Toplamı (7 gün): @Model.WaterTotalLast7Days.ToString("0.##") L</li>
-                    <li>Antrenmanlar (ay): @Model.TotalWorkoutsThisMonth</li>
-                    <li>Harcama (ay): @Model.MonthlyExpenseTotal.ToString("0.00") ₺</li>
+                    <li>@LanguageHelper.T(Context, "SummaryWaterTotal") @Model.WaterTotalLast7Days.ToString("0.##") L</li>
+                    <li>@LanguageHelper.T(Context, "SummaryWorkouts") @Model.TotalWorkoutsThisMonth</li>
+                    <li>@LanguageHelper.T(Context, "SummaryExpense") @Model.MonthlyExpenseTotal.ToString("0.00") ₺</li>
                 </ul>
             </div>
         </div>

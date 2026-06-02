@@ -90,6 +90,9 @@
         font-weight: 700;
         color: #ffffff;
     }
+    .dashboard-topbar__language {
+        color: white;
+    }
     .dashboard-topbar__avatar {
         width: 44px;
         height: 44px;
@@ -115,15 +118,18 @@
 
 <div class="dashboard-topbar">
     <a class="dashboard-topbar__back" href="/Dashboard?user=@username" onclick="if (history.length > 1) { history.back(); return false; }">
-        <span>&larr;</span> Geri Dön
+        <span>&larr;</span> @LanguageHelper.T(Context, "GoBack")
     </a>
     <div class="dashboard-topbar__brand">
         <div class="dashboard-topbar__logo">Multi<span>Track</span></div>
     </div>
     <div class="dashboard-topbar__user">
         <div class="dashboard-topbar__user-text">
-            <span>Hoş geldin,</span>
+            <span>@LanguageHelper.T(Context, "WelcomeLabel")</span>
             <span class="dashboard-topbar__user-name">@username</span>
+        </div>
+        <div class="dashboard-topbar__language">
+            <partial name="_LanguageSelector" />
         </div>
         <div class="dashboard-topbar__avatar"></div>
     </div>

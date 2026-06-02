@@ -6,7 +6,7 @@ namespace MultiTrack.Models
 {
     public class DashboardIstatistikViewModel
     {
-        public string Username { get; set; } = "rad";
+       public string Username { get; set; } = string.Empty;
 
         // Water data for last 7 days
         public List<double> WaterDataLast7Days { get; set; } = new List<double>();

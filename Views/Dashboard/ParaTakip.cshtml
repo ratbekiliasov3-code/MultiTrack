@@ -180,49 +180,49 @@
     <div class="page-content container">
         <div class="d-flex align-items-center justify-content-between mb-4">
             <div>
-                <div class="page-title">Harcama Takip</div>
-                <div class="page-subtitle">Bugünün harcama detaylarını ekleyin ve aylık toplamınızı takip edin.</div>
+                <div class="page-title">@LanguageHelper.T(Context, "ExpenseTrackingPageTitle")</div>
+                <div class="page-subtitle">@LanguageHelper.T(Context, "ExpenseTrackingSubtitle")</div>
             </div>
             <a href="/Dashboard/Index?user=@Model.Username" class="btn-back">Geri Dön</a>
         </div>
 
         <div class="summary-grid">
             <div class="summary-card">
-                <p>Bugün</p>
+                <p>@LanguageHelper.T(Context, "TodayLabel")</p>
                 <h3>@Model.TodayTotal.ToString("0.00") ₺</h3>
                 <p>@Model.Tarih.ToString("dd MMMM yyyy", culture)</p>
             </div>
             <div class="summary-card">
-                <p>Bu Ay</p>
+                <p>@LanguageHelper.T(Context, "ThisMonthLabel")</p>
                 <h3>@Model.MonthlyTotal.ToString("0.00") ₺</h3>
                 <p>@Model.Tarih.ToString("MMMM yyyy", culture)</p>
             </div>
             <div class="summary-card">
-                <p>Toplam Harcama</p>
+                <p>@LanguageHelper.T(Context, "TotalExpensesLabel")</p>
                 <h3>@Model.TotalAmount.ToString("0.00") ₺</h3>
-                <p>Bu liste tüm harcamalarınızı gösterir.</p>
+                <p>@LanguageHelper.T(Context, "ThisListShowsAllExpenses")</p>
             </div>
         </div>
 
         <div class="expense-panel">
             <div class="card">
                 <div class="card-body expense-form">
-                    <h5 class="mb-4">Yeni Harcama Ekle</h5>
+                    <h5 class="mb-4">@LanguageHelper.T(Context, "NewExpense")</h5>
                     <form method="post" action="/Dashboard/HarcamaEkle">
                         <input type="hidden" name="user" value="@Model.Username" />
                         <div class="mb-3">
-                            <label for="tarih" class="form-label">Tarih</label>
+                            <label for="tarih" class="form-label">@LanguageHelper.T(Context, "DateHeader")</label>
                             <input type="date" class="form-control" id="tarih" name="tarih" value="@Model.Tarih.ToString("yyyy-MM-dd")" required />
                         </div>
                         <div class="mb-3">
-                            <label for="aciklama" class="form-label">Açıklama</label>
+                            <label for="aciklama" class="form-label">@LanguageHelper.T(Context, "DescriptionLabel")</label>
                             <input type="text" class="form-control" id="aciklama" name="aciklama" placeholder="Kahve, market, ulaşım..." required />
                         </div>
                         <div class="mb-3">
-                            <label for="tutar" class="form-label">Tutar (₺)</label>
+                            <label for="tutar" class="form-label">@LanguageHelper.T(Context, "AmountLabel")</label>
                             <input type="number" step="0.01" min="0" class="form-control" id="tutar" name="tutar" placeholder="0.00" required />
                         </div>
-                        <button type="submit" class="btn btn-primary w-100" style="border-radius: 12px; padding: 12px;">Ekle</button>
+                        <button type="submit" class="btn btn-primary w-100" style="border-radius: 12px; padding: 12px;">@LanguageHelper.T(Context, "AddExpenseButton")</button>
                     </form>
                 </div>
             </div>
@@ -231,15 +231,15 @@
                 <div class="card-body">
                     <div class="d-flex align-items-center justify-content-between mb-4">
                         <div>
-                            <h5 class="mb-0">Harcama Detayları</h5>
-                            <small class="text-muted">Son eklenen harcamalarınız</small>
+                            <h5 class="mb-0">@LanguageHelper.T(Context, "ExpenseDetailsText")</h5>
+                            <small class="text-muted">@LanguageHelper.T(Context, "RecentExpenses")</small>
                         </div>
                         <span class="badge bg-primary">@Model.Expenses.Count adet</span>
                     </div>
 
                     @if (!Model.Expenses.Any())
                     {
-                        <div class="text-center text-muted py-5">Henüz kayıtlı harcamanız yok.</div>
+                        <div class="text-center text-muted py-5">@LanguageHelper.T(Context, "NoExpensesMessage")</div>
                     }
                     else
                     {
@@ -247,9 +247,9 @@
                             <table class="expense-table w-100">
                                 <thead>
                                     <tr>
-                                        <th>Açıklama</th>
-                                        <th>Tarih</th>
-                                        <th class="text-end">Tutar</th>
+                                        <th>@LanguageHelper.T(Context, "DescriptionLabel")</th>
+                                        <th>@LanguageHelper.T(Context, "DateHeader")</th>
+                                        <th class="text-end">@LanguageHelper.T(Context, "AmountHeader")</th>
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -265,7 +265,7 @@
                                                     <input type="hidden" name="id" value="@item.Id" />
                                                     <input type="hidden" name="user" value="@Model.Username" />
                                                     <input type="hidden" name="tarih" value="@Model.Tarih.ToString("yyyy-MM-dd")" />
-                                                    <button type="submit" class="btn btn-sm btn-outline-danger">Sil</button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger">@LanguageHelper.T(Context, "DeleteButton")</button>
                                                 </form>
                                             </td>
                                         </tr>

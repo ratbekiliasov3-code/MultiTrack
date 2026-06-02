@@ -3,18 +3,19 @@ using MultiTrack.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// --- HAFIZA VERİTABANI (ŞİFRESİZ MOD) ---
-// MySQL bağlantı kodları tamamen kaldırıldı.
+// Session ekle
+builder.Services.AddSession();
+
 builder.Services.AddDbContext<MultiTrackDbContext>(options =>
-    options.UseInMemoryDatabase("MultiTrackTestDb"));
-// ----------------------------------------
+    options.UseSqlite(
+        builder.Configuration.GetConnectionString("DefaultConnection")
+    ));
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Middleware sırası ÇOK önemli
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -25,6 +26,9 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+
+// 🔥 BURAYA EKLE
+app.UseSession();
 
 app.UseAuthorization();
 

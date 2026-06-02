@@ -4,11 +4,11 @@
 }
 
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@LanguageHelper.GetCurrentLanguage(Context).ToLowerInvariant()">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MultiTrack | Su Takip</title>
+    <title>@LanguageHelper.T(Context, "WaterTrackingTitle")</title>
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -217,33 +217,33 @@
 
 <div class="su-container">
     <div class="main-card">
-        <div class="title" id="cardTitleText"><i class="bi bi-droplet-fill"></i> Bugün</div>
-        <div class="amount" id="todayAmount">0 ml</div>
-        <div class="target">Hedef: 3000 ml</div>
+        <div class="title" id="cardTitleText"><i class="bi bi-droplet-fill"></i> @LanguageHelper.T(Context, "TodayWaterText")</div>
+        <div class="amount" id="todayAmount">0 @LanguageHelper.T(Context, "WaterChartLabel")</div>
+        <div class="target">@LanguageHelper.T(Context, "WaterCardGoal")</div>
     </div>
 
     <div class="grid-buttons">
-        <button class="btn-water btn-plus" onclick="addWater(250)">+250 ml</button>
-        <button class="btn-water btn-plus" onclick="addWater(500)">+500 ml</button>
-        <button class="btn-water btn-minus" onclick="addWater(-250)">-250 ml</button>
-        <button class="btn-water btn-minus" onclick="addWater(-500)">-500 ml</button>
+        <button class="btn-water btn-plus" onclick="addWater(250)">@LanguageHelper.T(Context, "AddWaterButton")</button>
+        <button class="btn-water btn-plus" onclick="addWater(500)">@LanguageHelper.T(Context, "AddWater500")</button>
+        <button class="btn-water btn-minus" onclick="addWater(-250)">@LanguageHelper.T(Context, "SubtractWaterButton")</button>
+        <button class="btn-water btn-minus" onclick="addWater(-500)">@LanguageHelper.T(Context, "SubtractWater500")</button>
     </div>
 
-    <button class="btn-reset" onclick="resetToday()"><i class="bi bi-trash3"></i> Seçili Günü Sıfırla</button>
+    <button class="btn-reset" onclick="resetToday()"><i class="bi bi-trash3"></i> @LanguageHelper.T(Context, "ResetWaterButton")</button>
 
     <div class="stats-box">
         <div>
-            <div class="stats-title">Aylık Toplam Tüketim</div>
-            <div class="stats-value" id="monthlyTotal">0 Litre</div>
+            <div class="stats-title">@LanguageHelper.T(Context, "MonthlyTotalConsumption")</div>
+            <div class="stats-value" id="monthlyTotal">0 @LanguageHelper.T(Context, "WaterChartLabel")</div>
         </div>
         <div class="text-muted"><i class="bi bi-graph-up-arrow fs-4"></i></div>
     </div>
 
-    <button class="btn-today" onclick="selectToday()">Bugüne Git</button>
+<button class="btn-today" onclick="selectToday()">@LanguageHelper.T(Context, "GoToTodayButton")</button>
 
     <div class="calendar-header">
         <i class="bi bi-chevron-left" style="cursor:pointer;" onclick="changeMonth(-1)"></i>
-        <span id="calendarMonthYear">Mayıs 2026</span>
+        <span id="calendarMonthYear"></span>
         <i class="bi bi-chevron-right" style="cursor:pointer;" onclick="changeMonth(1)"></i>
     </div>
 
@@ -259,10 +259,12 @@
     // Veritabanından gelen su verileri (ml cinsinden)
     let waterDatabase = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.WaterByDateMl));
 
-    const months = [
-        "Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", 
-        "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"
-    ];
+    const locale = '@LanguageHelper.GetCultureCode(Context)';
+    const months = Array.from({ length: 12 }, (_, i) => new Date(2020, i, 1).toLocaleString(locale, { month: 'long' }));
+    const todayLabel = '@Html.Raw(LanguageHelper.T(Context, "TodayWaterText"))';
+    const literLabel = '@Html.Raw(LanguageHelper.T(Context, "WaterChartLabel"))';
+    const saveErrorMsg = '@Html.Raw(LanguageHelper.T(Context, "SaveWaterError"))';
+    const resetErrorMsg = '@Html.Raw(LanguageHelper.T(Context, "ResetWaterError"))';
 
     // Sayfa ilk yüklendiğinde takvimi çalıştırır
     document.addEventListener("DOMContentLoaded", () => {
@@ -349,13 +351,14 @@
         // Üst kart başlığı ayarla (Bugün mü yoksa başka gün mü)
         const cardTitle = document.getElementById("cardTitleText");
         if (formatDate(currentDate) === dateKey) {
-            cardTitle.innerHTML = `<i class="bi bi-droplet-fill"></i> Bugün`;
+            cardTitle.innerHTML = `<i class="bi bi-droplet-fill"></i> ${todayLabel}`;
         } else {
             cardTitle.innerHTML = `<i class="bi bi-calendar-event"></i> ${selectedDate.getDate()} ${months[selectedDate.getMonth()]}`;
         }
 
-        // Seçili günün miktarını ekrana bas
-        document.getElementById('todayAmount').innerText = currentWater + " ml";
+        // Seçili günün miktarını ekrana bas (ml olarak), locale formatlı sayı
+        const todayAmountLabel = new Intl.NumberFormat(locale, { maximumFractionDigits: 0 }).format(currentWater);
+        document.getElementById('todayAmount').innerText = todayAmountLabel + " ml";
 
         // --- AYLIK TOPLAM HESAPLAMA ---
         let totalMonthMl = 0;
@@ -370,8 +373,9 @@
             }
         }
 
-        let liters = (totalMonthMl / 1000).toFixed(1);
-        document.getElementById('monthlyTotal').innerText = liters + " Litre";
+        let liters = Number(totalMonthMl / 1000);
+        let litersFormatted = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(liters);
+        document.getElementById('monthlyTotal').innerText = litersFormatted + " " + literLabel;
     }
 
     // Su Ekleme ve Çıkarma Butonları Fonksiyonu
@@ -411,7 +415,7 @@
         });
 
         if (!response.ok) {
-            alert('Su verisi kaydedilemedi. Lütfen sayfayı yenileyip tekrar deneyin.');
+            alert(saveErrorMsg);
         }
     }
 
@@ -426,7 +430,7 @@
         });
 
         if (!response.ok) {
-            alert('Su verisi sıfırlanamadı. Lütfen sayfayı yenileyip tekrar deneyin.');
+            alert(resetErrorMsg);
         }
     }
 

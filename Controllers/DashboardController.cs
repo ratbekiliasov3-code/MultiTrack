@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using MultiTrack.Models; // Modelleri ve DbContext'i görmesi için bu satır ŞART!
 using System;
@@ -19,9 +20,14 @@ namespace MultiTrack.Controllers
         [HttpGet]
 [Route("Dashboard/Index")]
 [Route("Dashboard/Main")] // Giriş yaptıktan sonra buraya yönlendireceğiz
-public IActionResult Index(string user)
+public IActionResult Index()
 {
-    var username = string.IsNullOrEmpty(user) ? "rad" : user;
+    var username = HttpContext.Session.GetString("UserId");
+
+    if (string.IsNullOrEmpty(username))
+        return RedirectToAction("Index", "Home");
+
+    ViewBag.Username = username;
     ViewBag.Username = username;
 
     var today = DateTime.Today;
@@ -45,7 +51,12 @@ public IActionResult Index(string user)
 [Route("Dashboard/GunlukPlan")]
 public IActionResult GunlukPlan(string user, string? tarih)
 {
-    ViewBag.Username = string.IsNullOrEmpty(user) ? "rad" : user;
+    var username = HttpContext.Session.GetString("UserId");
+
+if (string.IsNullOrEmpty(username))
+    return RedirectToAction("Index", "Home");
+
+ViewBag.Username = username;
 
     // 1. Tarih Ayarları
     DateTime secilenTarih = string.IsNullOrEmpty(tarih) ? DateTime.Today : DateTime.Parse(tarih);
@@ -149,7 +160,11 @@ ViewBag.PlanSayilari = planSayilari;
 [Route("Dashboard/SuTakip")]
 public IActionResult SuTakibi(string user, string? tarih)
 {
-    var username = string.IsNullOrEmpty(user) ? "rad" : user;
+    var username = HttpContext.Session.GetString("UserId");
+
+    if (string.IsNullOrEmpty(username))
+        return RedirectToAction("Index", "Home");
+
     ViewBag.Username = username;
     DateTime secilenTarih = string.IsNullOrEmpty(tarih) ? DateTime.Today : DateTime.Parse(tarih);
     ViewBag.SecilenTarih = secilenTarih.ToString("dd.MM.yyyy");
@@ -177,21 +192,7 @@ public IActionResult SuTakibi(string user, string? tarih)
 }
 
 [HttpPost]
-public IActionResult SuEkle(string user, string tarih, double miktar)
-{
-    var username = string.IsNullOrEmpty(user) ? "rad" : user;
-    var yeniSu = new SuTakibi
-    {
-        Tarih = DateTime.Parse(tarih),
-        Miktar = miktar / 1000.0,
-        KullaniciId = username
-    };
 
-    _context.Sular.Add(yeniSu);
-    _context.SaveChanges();
-
-    return RedirectToAction("SuTakibi", new { user = user, tarih = tarih });
-}
 
 [HttpPost]
 public IActionResult SuTemizle(string user, string tarih)
@@ -208,9 +209,12 @@ public IActionResult SuTemizle(string user, string tarih)
 
 [HttpGet]
 [Route("Dashboard/KitapTakip")]
-public IActionResult KitapTakip(string user)
+public IActionResult KitapTakip()
 {
-    string userName = string.IsNullOrEmpty(user) ? "rad" : user; // Değişkene atadık
+    string? userName = HttpContext.Session.GetString("UserId");
+
+    if (string.IsNullOrEmpty(userName))
+        return RedirectToAction("Index", "Home"); // Değişkene atadık
     ViewBag.Username = userName;
 
     // LINQ sorgusunu düzgün hale getirdik
@@ -229,7 +233,10 @@ public IActionResult KitapTakip(string user)
 [Route("Dashboard/TestQueries")]
 public IActionResult TestQueries(string user)
 {
-    var username = string.IsNullOrEmpty(user) ? "rad" : user;
+   var username = HttpContext.Session.GetString("UserId");
+
+if (string.IsNullOrEmpty(username))
+    return RedirectToAction("Index", "Home");
     var today = DateTime.Today;
     var thisMonth = new DateTime(today.Year, today.Month, 1);
     var nextMonth = thisMonth.AddMonths(1);
@@ -354,9 +361,12 @@ public IActionResult KitabiGuncelle(string kitapAdi, int toplamSayfa, string use
 [HttpGet]
 [Route("Dashboard/ParaTakip")]
 [Route("Dashboard/Harcama")]
-public IActionResult ParaTakip(string user, string? tarih)
+public IActionResult ParaTakip(string? tarih)
 {
-    var username = string.IsNullOrEmpty(user) ? "rad" : user;
+    var username = HttpContext.Session.GetString("UserId");
+
+    if (string.IsNullOrEmpty(username))
+        return RedirectToAction("Index", "Home");
     ViewBag.Username = username;
 
     DateTime selectedDate = string.IsNullOrEmpty(tarih) ? DateTime.Today : DateTime.Parse(tarih);
@@ -383,7 +393,10 @@ public IActionResult ParaTakip(string user, string? tarih)
 [HttpPost]
 public IActionResult HarcamaEkle(string user, string tarih, string aciklama, double tutar)
 {
-    var username = string.IsNullOrEmpty(user) ? "rad" : user;
+    var username = HttpContext.Session.GetString("UserId");
+
+if (string.IsNullOrEmpty(username))
+    return RedirectToAction("Index", "Home");
     if (!string.IsNullOrWhiteSpace(aciklama) && tutar > 0)
     {
         _context.Harcamalar.Add(new Harcama
@@ -435,9 +448,12 @@ public IActionResult AntrenmanSil(int id, string user)
 }
 [HttpGet]
 [Route("Dashboard/SporTakip")]
-public IActionResult SporTakip(string user)
+public IActionResult SporTakip()
 {
-    var username = string.IsNullOrEmpty(user) ? "rad" : user;
+    var username = HttpContext.Session.GetString("UserId");
+
+    if (string.IsNullOrEmpty(username))
+        return RedirectToAction("Index", "Home");
     ViewBag.Username = username;
     string bugunAdi = DateTime.Now.ToString("dddd", new System.Globalization.CultureInfo("tr-TR")).ToUpper();
 
@@ -462,7 +478,11 @@ public IActionResult SporTakip(string user)
 [Route("Dashboard/Istatistik")]
 public IActionResult Istatistik(string user)
 {
-    var username = string.IsNullOrEmpty(user) ? "rad" : user;
+    var username = HttpContext.Session.GetString("UserId");
+
+    if (string.IsNullOrEmpty(username))
+        return RedirectToAction("Index", "Home");
+
     ViewBag.Username = username;
     var today = DateTime.Today;
     var thisMonth = new DateTime(today.Year, today.Month, 1);

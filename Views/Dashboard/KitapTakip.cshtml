@@ -6,10 +6,10 @@
 }
 
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@LanguageHelper.GetCurrentLanguage(Context).ToLowerInvariant()">
 <head>
     <meta charset="UTF-8">
-    <title>MultiTrack | Kitap Takibi</title>
+    <title>MultiTrack | @LanguageHelper.T(Context, "BookTrackingPageTitle")</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <style>
@@ -24,24 +24,24 @@
     <partial name="_DashboardHeader" />
 
 <div class="kitap-container">
-    <a href="/Dashboard/Index?user=@ViewBag.Username" class="btn btn-link mb-3"><i class="bi bi-arrow-left"></i> Geri Dön</a>
+    <a href="/Dashboard/Index?user=@ViewBag.Username" class="btn btn-link mb-3"><i class="bi bi-arrow-left"></i> @LanguageHelper.T(Context, "GoBack")</a>
 
     <div class="main-card">
         <h3>@Model.KitapAdi</h3>
         <div class="fs-1 fw-bold">@Model.KalinanSayfa / @Model.ToplamSayfa</div>
-        <p class="opacity-75">Sayfa İlerlemesi</p>
+        <p class="opacity-75">@LanguageHelper.T(Context, "SaveInfoLabel")</p>
     </div>
 
     <form asp-action="IlerlemeyiKaydet" method="post" class="mb-4">
         <input type="hidden" name="user" value="@ViewBag.Username" />
-        <label class="fw-bold mb-2">Kaçıncı Sayfadasın?</label>
+        <label class="fw-bold mb-2">@LanguageHelper.T(Context, "BookTrackingQuestion")</label>
         <input type="number" name="kalinanSayfa" class="form-control" value="@Model.KalinanSayfa" min="0" max="@Model.ToplamSayfa">
-        <button type="submit" class="btn btn-primary btn-action">İlerlemeyi Kaydet</button>
+        <button type="submit" class="btn btn-primary btn-action">@LanguageHelper.T(Context, "SaveProgressButton")</button>
     </form>
 
     <div class="row text-center mb-4">
-        <div class="col-6"><strong>Kalan:</strong> @kalanSayfa</div>
-        <div class="col-6"><strong>Tamamlanan:</strong> %@yuzde</div>
+        <div class="col-6"><strong>@LanguageHelper.T(Context, "RemainingLabel")</strong> @kalanSayfa</div>
+        <div class="col-6"><strong>@LanguageHelper.T(Context, "CompletedLabel")</strong> %@yuzde</div>
     </div>
 
     <hr>
@@ -50,7 +50,7 @@
         <input type="hidden" name="user" value="@ViewBag.Username" />
         <input type="text" name="kitapAdi" class="form-control" value="@Model.KitapAdi" required>
         <input type="number" name="toplamSayfa" class="form-control" value="@Model.ToplamSayfa" min="1" required>
-        <button type="submit" class="btn btn-dark btn-action">Bilgileri Kaydet</button>
+        <button type="submit" class="btn btn-dark btn-action">@LanguageHelper.T(Context, "SaveInfoButton")</button>
     </form>
 </div>
 

@@ -1,7 +1,10 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MultiTrack.Models;
+
 
 namespace MultiTrack.Controllers
 {
@@ -100,12 +103,14 @@ namespace MultiTrack.Controllers
                     }
                 }
 
-                if (bulunanKullanici != null)
-                {
-                    // Başarılı giriş: İsmi e-postadan ayıkla ve Dashboard'a gönder
-                    string username = girilenEmail.Split('@')[0];
-                    return RedirectToAction("Index", "Dashboard", new { user = username });
-                }
+if (bulunanKullanici != null)
+{
+    string username = girilenEmail.Split('@')[0];
+
+    HttpContext.Session.SetString("UserId", username);
+
+    return RedirectToAction("Index", "Dashboard");
+}
 
                 // Kullanıcı listede yoksa veya şifre yanlışsa hata ver
                 ViewBag.ErrorMessage = "Hatalı e-posta veya şifre girdiniz!";
@@ -114,6 +119,35 @@ namespace MultiTrack.Controllers
             }
 
             return View();
+        }
+
+        [HttpGet]
+        public IActionResult SetLanguage(string lang, string? returnUrl)
+        {
+            if (string.IsNullOrWhiteSpace(lang))
+            {
+                lang = LanguageHelper.DefaultLang;
+            }
+
+            lang = lang.ToUpperInvariant();
+            if (!LanguageHelper.SupportedLanguages.Contains(lang))
+            {
+                lang = LanguageHelper.DefaultLang;
+            }
+
+            Response.Cookies.Append("lang", lang, new Microsoft.AspNetCore.Http.CookieOptions
+            {
+                Expires = DateTimeOffset.UtcNow.AddYears(1),
+                Path = "/",
+                IsEssential = true
+            });
+
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            return RedirectToAction("Index");
         }
     }
 }

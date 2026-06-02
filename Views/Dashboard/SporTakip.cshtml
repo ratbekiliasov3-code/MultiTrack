@@ -25,7 +25,7 @@
 <div class="container py-4">
 
   <div class="today-box">
-    <h4>⚡ Bugün: @bugun</h4>
+    <h4>⚡ @LanguageHelper.T(Context, "TodayAt") @bugun</h4>
     
     @if (liste.Any(m => m.Gun.ToUpper() == bugun))
     {
@@ -38,22 +38,22 @@
     }
     else
     {
-        <p class="mb-0 mt-2">Bugün için bir planın yok, dinlenme günü mü?</p>
+        <p class="mb-0 mt-2">@LanguageHelper.T(Context, "NoWorkoutPlanMessage")</p>
     }
 </div>
 
 
 <div class="card shadow-sm p-4 mb-4" style="border-radius: 15px;">
     <div class="d-flex justify-content-between mb-2">
-        <span class="fw-bold">Haftalık Tamamlanma Oranı</span>
+        <span class="fw-bold">@LanguageHelper.T(Context, "WeeklyCompletionTitle")</span>
         <span class="fw-bold">@(Model?.WeeklyCompletionRate ?? 0)%</span>
     </div>
     <div class="d-flex justify-content-between mb-2">
-        <span>Toplam Antrenman</span>
+        <span>@LanguageHelper.T(Context, "TotalWorkoutsLabel")</span>
         <span>@(Model?.TotalWeeklyWorkouts ?? 0)</span>
     </div>
     <div class="d-flex justify-content-between mb-2">
-        <span>Tamamlanan Antrenman</span>
+        <span>@LanguageHelper.T(Context, "CompletedWorkoutsLabel")</span>
         <span>@(Model?.CompletedWeeklyWorkouts ?? 0)</span>
     </div>
     <div class="progress" style="height: 10px; border-radius: 5px;">
@@ -74,8 +74,8 @@
                         <form action="/Dashboard/AntrenmanEkle" method="post" class="input-group mb-2">
                             <input type="hidden" name="gun" value="@gun">
                             <input type="hidden" name="user" value="@ViewBag.Username">
-                            <input type="text" name="antrenmanAdi" class="form-control" placeholder="Ekle..." required>
-                            <button type="submit" class="btn btn-dark">Ekle</button>
+                            <input type="text" name="antrenmanAdi" class="form-control" placeholder="@LanguageHelper.T(Context, "AddPlanPlaceholder")" required>
+                            <button type="submit" class="btn btn-dark">@LanguageHelper.T(Context, "AddWorkout")</button>
                         </form>
                         
                         <ul class="list-group">
@@ -94,7 +94,7 @@
                 <form action="/Dashboard/AntrenmanSil" method="post">
                     <input type="hidden" name="id" value="@item.Id">
                     <input type="hidden" name="user" value="@ViewBag.Username">
-                    <button type="submit" class="btn btn-sm btn-danger btn-action">Sil</button>
+                    <button type="submit" class="btn btn-sm btn-danger btn-action">@LanguageHelper.T(Context, "DeleteButton")</button>
                 </form>
             </div>
         </li>

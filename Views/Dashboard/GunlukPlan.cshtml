@@ -6,11 +6,11 @@
 }
 
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@LanguageHelper.GetCurrentLanguage(Context).ToLowerInvariant()">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Günlük Plan</title>
+    <title>@LanguageHelper.T(Context, "DailyPlanTitle")</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <style>
         body {
@@ -71,7 +71,7 @@
     <div class="row gx-5">
         
         <div class="col-xl-7 col-lg-7 col-md-6 col-12 mb-4">
-            <h2 class="fw-bold mb-4">Günlük Plan</h2>
+            <h2 class="fw-bold mb-4">@LanguageHelper.T(Context, "DailyPlanTitle")</h2>
             
             <div class="d-flex align-items-center mb-4 gap-2">
                 @{
@@ -84,19 +84,19 @@
                 <span class="badge bg-secondary px-3 py-2 fs-6">@ViewBag.SecilenTarih</span>
                 <a href="/Dashboard/GunlukPlan?user=@ViewBag.Username&tarih=@sonrakiTarih" class="btn btn-outline-light">&gt;</a>
                 
-                <a href="/Dashboard/GunlukPlan?user=@ViewBag.Username&tarih=@ViewBag.BugunParam" class="btn btn-primary ms-2">Bugüne Git</a>
+                <a href="/Dashboard/GunlukPlan?user=@ViewBag.Username&tarih=@ViewBag.BugunParam" class="btn btn-primary ms-2">@LanguageHelper.T(Context, "GoToTodayButton")</a>
             </div>
 
             <form asp-action="PlanEkle" method="post" class="d-flex gap-2 mb-4">
     <input type="hidden" name="user" value="@ViewBag.Username" />
     <input type="hidden" name="tarih" value="@ViewBag.TarihParam" />
     
-    <input type="text" name="baslik" class="plan-input" placeholder="Plan ekle..." autocomplete="off" required />
+    <input type="text" name="baslik" class="plan-input" placeholder="@LanguageHelper.T(Context, "AddPlanPlaceholder")" autocomplete="off" required />
     
-    <button type="submit" class="btn btn-ekle">Ekle</button>
+    <button type="submit" class="btn btn-ekle">@LanguageHelper.T(Context, "AddPlanButton")</button>
 </form>
 
-            <h4 class="mt-4 mb-3">Bugünün Planları</h4>
+            <h4 class="mt-4 mb-3">@LanguageHelper.T(Context, "TodayPlansHeader")</h4>
             <div id="planListesi">
                 @if (Model != null && Model.Any())
                 {

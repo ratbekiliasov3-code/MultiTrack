@@ -3,7 +3,9 @@ namespace MultiTrack.Models
     public class TodoItem
     {
         public int Id { get; set; }
-        public string? Title { get; set; }
-        public bool IsDone { get; set; } // Hata veren eksik parça burası
+
+        public string Title { get; set; } = "";
+
+        public bool IsDone { get; set; }
     }
 }

@@ -5,7 +5,7 @@ namespace MultiTrack.Models
         public int Id { get; set; }
         public string Gun { get; set; } = "";
         public string AntrenmanAdi { get; set; } = "";
-        public string KullaniciId { get; set; } = "rad";
+       public string KullaniciId { get; set; } = string.Empty;
         public bool IsCompleted { get; set; }
     }
 }

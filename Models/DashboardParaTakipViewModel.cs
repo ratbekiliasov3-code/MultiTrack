@@ -6,7 +6,7 @@ namespace MultiTrack.Models
 {
     public class DashboardParaTakipViewModel
     {
-        public string Username { get; set; } = "rad";
+       public string Username { get; set; } = string.Empty;
         public DateTime Tarih { get; set; } = DateTime.Today;
         public List<Harcama> Expenses { get; set; } = new List<Harcama>();
         public double TodayTotal { get; set; }

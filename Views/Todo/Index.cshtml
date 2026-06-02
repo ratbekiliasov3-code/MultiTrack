@@ -1,11 +1,11 @@
 @model List<MultiTrack.Models.TodoItem>
 
-<h1>Todo Listesi</h1>
+<h1>@LanguageHelper.T(Context, "TodoPageTitle")</h1>
 
 <!-- FORM -->
 <form asp-action="Add" method="post">
-    <input type="text" name="title" placeholder="Yeni görev yaz..." />
-    <button type="submit">Ekle</button>
+    <input type="text" name="title" placeholder="@LanguageHelper.T(Context, "NewTodoPlaceholder")" />
+    <button type="submit">@LanguageHelper.T(Context, "AddButton")</button>
 </form>
 
 <hr />
@@ -28,7 +28,7 @@
 
     <form asp-action="Delete" method="post" style="display:inline;">
         <input type="hidden" name="id" value="@item.Id" />
-        <button type="submit">Sil</button>
+        <button type="submit">@LanguageHelper.T(Context, "DeleteButton")</button>
     </form>
 </li>
 }
