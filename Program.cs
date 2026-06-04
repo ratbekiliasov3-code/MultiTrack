@@ -8,10 +8,16 @@ builder.Services.AddControllersWithViews();
 // Session ekle
 builder.Services.AddSession();
 
+var connString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (!string.IsNullOrEmpty(connString) && connString.StartsWith("postgres://"))
+{
+    var uri = new Uri(connString);
+    var userInfo = uri.UserInfo.Split(':');
+    connString = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SslMode=Require;Trust Server Certificate=True;";
+}
+
 builder.Services.AddDbContext<MultiTrackDbContext>(options =>
-    options.UseNpgsql(
-        builder.Configuration.GetConnectionString("DefaultConnection")
-    )
+    options.UseNpgsql(connString)
 );
 
 var app = builder.Build();
