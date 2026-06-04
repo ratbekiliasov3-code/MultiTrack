@@ -38,4 +38,11 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
     AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
+// 🔥 OTOMATİK VERİTABANI KURULUMU (Canlı sunucu için)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<MultiTrackDbContext>();
+    db.Database.Migrate();
+}
+
 app.Run();
