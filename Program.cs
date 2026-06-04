@@ -3,6 +3,10 @@ using MultiTrack.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Render'ın verdiği PORT'u dinlemek için:
+var port = Environment.GetEnvironmentVariable("PORT") ?? "8080";
+builder.WebHost.UseUrls($"http://*:{port}");
+
 builder.Services.AddControllersWithViews();
 
 // Session ekle
