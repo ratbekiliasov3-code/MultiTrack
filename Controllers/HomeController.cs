@@ -1,8 +1,9 @@
-﻿using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.EntityFrameworkCore;
 using MultiTrack.Models;
 
 
@@ -17,9 +18,25 @@ namespace MultiTrack.Controllers
 
     public class HomeController : Controller
     {
+        private readonly MultiTrackDbContext _context;
+
+public HomeController(MultiTrackDbContext context)
+{
+    _context = context;
+}
+
+        private string HashPassword(string password)
+        {
+            using (var sha256 = System.Security.Cryptography.SHA256.Create())
+            {
+                var bytes = System.Text.Encoding.UTF8.GetBytes(password);
+                var hash = sha256.ComputeHash(bytes);
+                return Convert.ToBase64String(hash);
+            }
+        }
         // HAFIZA ALANI: Kayıt olan herkes bu listeye yazılır ve proje kapanana kadar siliniz.
         // admin@multitrack.com hesabı tamamen silindi, artık sadece kendi kayıt ettiğin isimler geçerli.
-        private static readonly List<GecciciKullanici> _kullaniciListesi = new List<GecciciKullanici>();
+        
 
         [HttpGet]
         public IActionResult Index()
@@ -36,14 +53,14 @@ namespace MultiTrack.Controllers
             {
                 if (string.IsNullOrEmpty(registerEmail) || string.IsNullOrEmpty(registerPassword) || string.IsNullOrEmpty(confirmPassword))
                 {
-                    ViewBag.ErrorMessage = "Lütfen tüm alanları doldurun.";
+                    ViewBag.ErrorMessageKey = "ErrorFillAll";
                     ViewBag.ActiveTab = "register";
                     return View();
                 }
 
                 if (registerPassword != confirmPassword)
                 {
-                    ViewBag.ErrorMessage = "Şifreler birbiriyle uyuşmuyor!";
+                    ViewBag.ErrorMessageKey = "ErrorPasswordsMismatch";
                     ViewBag.ActiveTab = "register";
                     return View();
                 }
@@ -51,31 +68,27 @@ namespace MultiTrack.Controllers
                 string temizEmail = registerEmail.Trim();
 
                 // Bu e-posta daha önce eklenmiş mi kontrol et
-                bool varMi = false;
-                foreach (var u in _kullaniciListesi)
-                {
-                    if (u.Email.Equals(temizEmail, StringComparison.OrdinalIgnoreCase))
-                    {
-                        varMi = true;
-                        break;
-                    }
-                }
+                bool varMi = _context.Kullanici
+    .Any(x => x.Email.ToLower() == temizEmail.ToLower());
 
                 if (varMi)
                 {
-                    ViewBag.ErrorMessage = "Bu e-posta adresiyle zaten bir hesap var!";
+                    ViewBag.ErrorMessageKey = "ErrorEmailExists";
                     ViewBag.ActiveTab = "register";
                     return View();
                 }
 
                 // Yeni kullanıcıyı hafızadaki listeye ekle
-                _kullaniciListesi.Add(new GecciciKullanici
-                {
-                    Email = temizEmail,
-                    Password = registerPassword
-                });
+                var yeniKullanici = new Kullanici
+{
+    Email = temizEmail,
+    Password = HashPassword(registerPassword)
+};
 
-                ViewBag.SuccessMessage = "Kayıt işlemi başarılı! Şimdi kendi bilgilerinizle giriş yapabilirsiniz.";
+_context.Kullanici.Add(yeniKullanici);
+_context.SaveChanges();
+
+                ViewBag.SuccessMessageKey = "RegisterSuccess";
                 ViewBag.ActiveTab = "login"; // Otomatik giriş sekmesine atar
                 return View();
             }
@@ -85,40 +98,55 @@ namespace MultiTrack.Controllers
             {
                 if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
                 {
-                    ViewBag.ErrorMessage = "E-posta ve şifre alanları boş bırakılamaz.";
+                    ViewBag.ErrorMessageKey = "ErrorEmailPassword";
                     ViewBag.ActiveTab = "login";
                     return View();
                 }
 
                 string girilenEmail = email.Trim();
 
-                // GİRİŞ KONTROLÜ: Girilen e-posta ve şifre hafızadaki listede var mı?
-                GecciciKullanici bulunanKullanici = null;
-                foreach (var u in _kullaniciListesi)
+                // GİRİŞ KONTROLÜ: Girilen e-posta sistemde var mı?
+                var bulunanKullanici = _context.Kullanici
+                    .FirstOrDefault(x => x.Email.ToLower() == girilenEmail.ToLower());
+
+                if (bulunanKullanici != null)
                 {
-                    if (u.Email.Equals(girilenEmail, StringComparison.OrdinalIgnoreCase) && u.Password == password)
+                    bool isPasswordCorrect = false;
+
+                    if (bulunanKullanici.Password == password)
                     {
-                        bulunanKullanici = u;
-                        break;
+                        // Düz metin şifre eşleşti (Eski kullanıcı). Şifresini hashleyip güncelleyelim.
+                        isPasswordCorrect = true;
+                        bulunanKullanici.Password = HashPassword(password);
+                        _context.SaveChanges();
+                    }
+                    else if (bulunanKullanici.Password == HashPassword(password))
+                    {
+                        // Şifre zaten hashlenmiş ve doğru
+                        isPasswordCorrect = true;
+                    }
+
+                    if (isPasswordCorrect)
+                    {
+                        HttpContext.Session.SetString("UserId", bulunanKullanici.Id.ToString());
+                        return RedirectToAction("Index", "Dashboard");
                     }
                 }
 
-if (bulunanKullanici != null)
-{
-    string username = girilenEmail.Split('@')[0];
-
-    HttpContext.Session.SetString("UserId", username);
-
-    return RedirectToAction("Index", "Dashboard");
-}
-
                 // Kullanıcı listede yoksa veya şifre yanlışsa hata ver
-                ViewBag.ErrorMessage = "Hatalı e-posta veya şifre girdiniz!";
+                ViewBag.ErrorMessageKey = "ErrorInvalidLogin";
                 ViewBag.ActiveTab = "login";
                 return View();
             }
 
             return View();
+        }
+
+        [HttpGet]
+        public IActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return RedirectToAction("Index", "Home");
         }
 
         [HttpGet]

@@ -4,6 +4,9 @@ using MultiTrack.Models; // Modelleri ve DbContext'i görmesi için bu satır Ş
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.IO;
+using ImageMagick;
+using System.IO;
 
 namespace MultiTrack.Controllers
 {
@@ -30,7 +33,7 @@ public IActionResult Index()
     ViewBag.Username = username;
     ViewBag.Username = username;
 
-    var today = DateTime.Today;
+    var today = DateTime.UtcNow;
     var todayStart = today.Date;
     var todayEnd = todayStart.AddDays(1);
     ViewBag.TodayExpenseTotal = _context.Harcamalar
@@ -43,6 +46,40 @@ public IActionResult Index()
         .Where(h => h.KullaniciId == username && h.Tarih >= thisMonthStart && h.Tarih < nextMonthStart)
         .Sum(h => (double?)h.Tutar) ?? 0.0;
 
+    // Su Takibi
+    ViewBag.TodayWaterTotal = _context.Sular
+        .Where(s => s.KullaniciId == username && s.Tarih >= todayStart && s.Tarih < todayEnd)
+        .Sum(s => (double?)s.Miktar) ?? 0.0;
+
+    // Günlük Plan
+    if (int.TryParse(username, out var userIdInt))
+    {
+        var todaysPlans = _context.Gorevler
+            .Where(g => g.KullaniciId == userIdInt && g.Tarih >= todayStart && g.Tarih < todayEnd)
+            .ToList();
+        ViewBag.TodaysPlanCount = todaysPlans.Count;
+        ViewBag.TodaysCompletedPlanCount = todaysPlans.Count(p => p.IsCompleted);
+    }
+    else
+    {
+        ViewBag.TodaysPlanCount = 0;
+        ViewBag.TodaysCompletedPlanCount = 0;
+    }
+
+    // Kitap Takip
+    var book = _context.Kitaplar.FirstOrDefault(k => k.KullaniciId == username);
+    ViewBag.Book = book;
+
+    // Spor Takip
+    string bugunAdi = DateTime.UtcNow.ToLocalTime()
+        .ToString("dddd", new System.Globalization.CultureInfo("tr-TR"))
+        .ToUpper();
+    var todaysWorkouts = _context.Sporlar
+        .Where(s => s.KullaniciId == username && s.Gun == bugunAdi)
+        .ToList();
+    ViewBag.TodaysWorkoutCount = todaysWorkouts.Count;
+    ViewBag.TodaysCompletedWorkoutCount = todaysWorkouts.Count(w => w.IsCompleted);
+
     return View(); // Bizi ana 6'lı panelin olduğu sayfaya götürecek
 }
 
@@ -53,98 +90,115 @@ public IActionResult GunlukPlan(string user, string? tarih)
 {
     var username = HttpContext.Session.GetString("UserId");
 
-if (string.IsNullOrEmpty(username))
-    return RedirectToAction("Index", "Home");
+    if (string.IsNullOrEmpty(username) || !int.TryParse(username, out var userId))
+        return RedirectToAction("Index", "Home");
 
-ViewBag.Username = username;
+    ViewBag.Username = username;
 
     // 1. Tarih Ayarları
-    DateTime secilenTarih = string.IsNullOrEmpty(tarih) ? DateTime.Today : DateTime.Parse(tarih);
+    DateTime secilenTarih = string.IsNullOrEmpty(tarih)
+        ? DateTime.UtcNow.Date
+        : DateTime.SpecifyKind(DateTime.Parse(tarih), DateTimeKind.Utc);
     ViewBag.SecilenTarih = secilenTarih.ToString("dd.MM.yyyy");
     ViewBag.TarihParam = secilenTarih.ToString("yyyy-MM-dd");
     
-    // Hatalı olan satır burasıydı, alt kısım temizlendi:
-    ViewBag.MevcutAyYil = secilenTarih.ToString("MMMM yyyy", new System.Globalization.CultureInfo("tr-TR"));
+    var cultureCode = LanguageHelper.GetCultureCode(HttpContext);
+    ViewBag.MevcutAyYil = secilenTarih.ToString("MMMM yyyy", new System.Globalization.CultureInfo(cultureCode));
     ViewBag.SecilenAy = secilenTarih.Month;
-    ViewBag.SecilenYil = secilenTarih.Year; // Hata veren kısım düzeltildi
-    ViewBag.BugunParam = DateTime.Today.ToString("yyyy-MM-dd");
+    ViewBag.SecilenYil = secilenTarih.Year;
+    ViewBag.BugunParam = DateTime.UtcNow.ToString("yyyy-MM-dd");
 
-    // ... kodların geri kalan alt kısımlarına (PlanEkle, PlanSil vb.) dokunmayın.
+    // 2. Ayın Toplam Gün Sayısını ve İlk Günün Haftanın Hangi Günü Olduğunu Bulma
+    int gunSayisi = DateTime.DaysInMonth(secilenTarih.Year, secilenTarih.Month);
+    ViewBag.DaysInMonth = gunSayisi;
+    
+    DateTime ayinIlkGunu = new DateTime(secilenTarih.Year, secilenTarih.Month, 1);
+    // Pazartesi=1, Salı=2 ... Pazar=7 olacak şekilde ayarlama
+    int baslangicGunu = ((int)ayinIlkGunu.DayOfWeek == 0) ? 7 : (int)ayinIlkGunu.DayOfWeek;
+    ViewBag.FirstDayOfWeek = baslangicGunu;
 
-            // 2. Ayın Toplam Gün Sayısını ve İlk Günün Haftanın Hangi Günü Olduğunu Bulma
-            int gunSayisi = DateTime.DaysInMonth(secilenTarih.Year, secilenTarih.Month);
-            ViewBag.DaysInMonth = gunSayisi;
-            
-            DateTime ayinIlkGunu = new DateTime(secilenTarih.Year, secilenTarih.Month, 1);
-            // Pazartesi=1, Salı=2 ... Pazar=7 olacak şekilde ayarlama
-            int baslangicGunu = ((int)ayinIlkGunu.DayOfWeek == 0) ? 7 : (int)ayinIlkGunu.DayOfWeek;
-            ViewBag.FirstDayOfWeek = baslangicGunu;
+    // 3. Her Gün İçin Plan Sayılarını Veritabanından Çekme (Düzeltilmiş Hali - SQLite uyumlu date range filtreli)
+    var firstDayOfMonth = new DateTime(secilenTarih.Year, secilenTarih.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+    var lastDayOfMonth = firstDayOfMonth.AddMonths(1);
 
-            // 3. Her Gün İçin Plan Sayılarını Veritabanından Çekme (Sözlük/Dictionary olarak)
-            // Controllers/DashboardController.cs içindeki ilgili bölümü bulun ve sadece burayı güncelleyin:
+    var planSayilari = _context.Gorevler
+        .Where(g => g.KullaniciId == userId && g.Tarih >= firstDayOfMonth && g.Tarih < lastDayOfMonth)
+        .AsEnumerable()
+        .GroupBy(g => g.Tarih.Date)
+        .ToDictionary(group => group.Key, group => group.Count());
 
-// 3. Her Gün İçin Plan Sayılarını Veritabanından Çekme (Düzeltilmiş Hali)
-var planSayilari = _context.Gorevler
-    .Where(g => g.Tarih.Year == secilenTarih.Year && g.Tarih.Month == secilenTarih.Month)
-    .AsEnumerable() // Veritabanı çeviri hatasını engellemek için veriyi hafızaya alıyoruz
-    .GroupBy(g => g.Tarih.Date)
-    .ToDictionary(group => group.Key, group => group.Count());
+    ViewBag.PlanSayilari = planSayilari;
 
-ViewBag.PlanSayilari = planSayilari;
+    // 4. Seçilen Güne Ait Planları Listeleme
+    var secilenStart = secilenTarih.Date;
+    var secilenEnd = secilenStart.AddDays(1);
+    var planlar = _context.Gorevler
+        .Where(g => g.KullaniciId == userId && g.Tarih >= secilenStart && g.Tarih < secilenEnd)
+        .ToList();
 
-            // 4. Seçilen Güne Ait Planları Listeleme
-            var secilenStart = secilenTarih.Date;
-            var secilenEnd = secilenStart.AddDays(1);
-            var planlar = _context.Gorevler.Where(g => g.Tarih >= secilenStart && g.Tarih < secilenEnd).ToList();
+    return View("GunlukPlan", planlar);
+}
 
-            return View("GunlukPlan", planlar);
-        }
+[HttpPost]
+public IActionResult PlanEkle(string user, string tarih, string baslik)
+{
+    var username = HttpContext.Session.GetString("UserId");
 
-        [HttpPost]
-        public IActionResult PlanEkle(string user, string tarih, string baslik)
+    if (string.IsNullOrEmpty(username) || !int.TryParse(username, out var userId))
+        return RedirectToAction("Index", "Home");
+
+    if (!string.IsNullOrEmpty(baslik))
+    {
+        var yeniGorev = new Gorev
         {
-            if (!string.IsNullOrEmpty(baslik))
-            {
-                var yeniGorev = new Gorev
-                {
-                    Baslik = baslik,
-                    Tarih = DateTime.Parse(tarih),
-                    IsCompleted = false,
-                    KullaniciId = 1
-                };
+            Baslik = baslik,
+            Tarih = DateTime.SpecifyKind(DateTime.Parse(tarih), DateTimeKind.Utc),
+            IsCompleted = false,
+            KullaniciId = userId
+        };
 
-                _context.Gorevler.Add(yeniGorev);
-                _context.SaveChanges();
-            }
+        _context.Gorevler.Add(yeniGorev);
+        _context.SaveChanges();
+    }
 
-            return RedirectToAction("GunlukPlan", new { user = user, tarih = tarih });
-        }
+    return RedirectToAction("GunlukPlan", new { user = user, tarih = tarih });
+}
 
-        [HttpPost]
-        public IActionResult PlanSil(int id, string user, string tarih)
-        {
-            var gorev = _context.Gorevler.Find(id);
-            if (gorev != null)
-            {
-                _context.Gorevler.Remove(gorev);
-                _context.SaveChanges();
-            }
+[HttpPost]
+public IActionResult PlanSil(int id, string user, string tarih)
+{
+    var username = HttpContext.Session.GetString("UserId");
 
-            return RedirectToAction("GunlukPlan", new { user = user, tarih = tarih });
-        }
+    if (string.IsNullOrEmpty(username) || !int.TryParse(username, out var userId))
+        return RedirectToAction("Index", "Home");
 
-        [HttpPost]
-        public IActionResult PlanTamamla(int id, string user, string tarih)
-        {
-            var gorev = _context.Gorevler.Find(id);
-            if (gorev != null)
-            {
-                gorev.IsCompleted = !gorev.IsCompleted;
-                _context.SaveChanges();
-            }
+    var gorev = _context.Gorevler.Find(id);
+    if (gorev != null && gorev.KullaniciId == userId)
+    {
+        _context.Gorevler.Remove(gorev);
+        _context.SaveChanges();
+    }
 
-            return RedirectToAction("GunlukPlan", new { user = user, tarih = tarih });
-        }
+    return RedirectToAction("GunlukPlan", new { user = user, tarih = tarih });
+}
+
+[HttpPost]
+public IActionResult PlanTamamla(int id, string user, string tarih)
+{
+    var username = HttpContext.Session.GetString("UserId");
+
+    if (string.IsNullOrEmpty(username) || !int.TryParse(username, out var userId))
+        return RedirectToAction("Index", "Home");
+
+    var gorev = _context.Gorevler.Find(id);
+    if (gorev != null && gorev.KullaniciId == userId)
+    {
+        gorev.IsCompleted = !gorev.IsCompleted;
+        _context.SaveChanges();
+    }
+
+    return RedirectToAction("GunlukPlan", new { user = user, tarih = tarih });
+}
         // ---- SU TAKİBİ MODÜLÜ ----
 
 // Controllers/DashboardController.cs içindeki bu metodu bulun ve rotalarını güncelleyin:
@@ -166,7 +220,9 @@ public IActionResult SuTakibi(string user, string? tarih)
         return RedirectToAction("Index", "Home");
 
     ViewBag.Username = username;
-    DateTime secilenTarih = string.IsNullOrEmpty(tarih) ? DateTime.Today : DateTime.Parse(tarih);
+    DateTime secilenTarih = string.IsNullOrEmpty(tarih)
+    ? DateTime.UtcNow.Date
+    : DateTime.SpecifyKind(DateTime.Parse(tarih), DateTimeKind.Utc);
     ViewBag.SecilenTarih = secilenTarih.ToString("dd.MM.yyyy");
     ViewBag.TarihParam = secilenTarih.ToString("yyyy-MM-dd");
 
@@ -176,7 +232,8 @@ public IActionResult SuTakibi(string user, string? tarih)
 
     var waterByDateMl = waterRecords
         .GroupBy(s => s.Tarih.Date)
-        .ToDictionary(
+        .ToDictionary
+        (
             g => g.Key.ToString("yyyy-MM-dd"),
             g => g.Sum(s => s.Miktar) * 1000.0
         );
@@ -192,18 +249,64 @@ public IActionResult SuTakibi(string user, string? tarih)
 }
 
 [HttpPost]
+public IActionResult SuEkle(string user, string tarih, double miktar)
+{
+    var username = HttpContext.Session.GetString("UserId");
+    if (string.IsNullOrEmpty(username))
+        return RedirectToAction("Index", "Home");
 
+    DateTime secilenTarih = DateTime.SpecifyKind(DateTime.ParseExact(tarih, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), DateTimeKind.Utc);
+    var start = secilenTarih.Date;
+    var end = start.AddDays(1);
+
+    var existingRecords = _context.Sular
+        .Where(s => s.KullaniciId == username && s.Tarih >= start && s.Tarih < end)
+        .ToList();
+
+    if (existingRecords.Any())
+    {
+        var first = existingRecords.First();
+        first.Miktar = miktar / 1000.0;
+        
+        if (existingRecords.Count > 1)
+        {
+            _context.Sular.RemoveRange(existingRecords.Skip(1));
+        }
+    }
+    else
+    {
+        var yeniSu = new SuTakibi
+        {
+            Tarih = secilenTarih,
+            Miktar = miktar / 1000.0,
+            KullaniciId = username
+        };
+        _context.Sular.Add(yeniSu);
+    
+    }
+    _context.SaveChanges();
+    return Ok();
+}
 
 [HttpPost]
 public IActionResult SuTemizle(string user, string tarih)
 {
-    DateTime secilenTarih = DateTime.Parse(tarih);
-    var bugunkuSular = _context.Sular.Where(s => s.Tarih >= secilenTarih.Date && s.Tarih < secilenTarih.Date.AddDays(1)).ToList();
+    var username = HttpContext.Session.GetString("UserId");
+    if (string.IsNullOrEmpty(username))
+        return RedirectToAction("Index", "Home");
+
+    DateTime secilenTarih = DateTime.SpecifyKind(DateTime.ParseExact(tarih, "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture), DateTimeKind.Utc);
+    var start = secilenTarih.Date;
+    var end = start.AddDays(1);
+
+    var bugunkuSular = _context.Sular
+        .Where(s => s.KullaniciId == username && s.Tarih >= start && s.Tarih < end)
+        .ToList();
     
     _context.Sular.RemoveRange(bugunkuSular);
     _context.SaveChanges();
 
-    return RedirectToAction("SuTakibi", new { user = user, tarih = tarih });
+    return Ok();
 }
 // ---- KİTAP TAKİBİ MODÜLÜ ----
 
@@ -237,7 +340,7 @@ public IActionResult TestQueries(string user)
 
 if (string.IsNullOrEmpty(username))
     return RedirectToAction("Index", "Home");
-    var today = DateTime.Today;
+    var today = DateTime.UtcNow;
     var thisMonth = new DateTime(today.Year, today.Month, 1);
     var nextMonth = thisMonth.AddMonths(1);
 
@@ -369,7 +472,7 @@ public IActionResult ParaTakip(string? tarih)
         return RedirectToAction("Index", "Home");
     ViewBag.Username = username;
 
-    DateTime selectedDate = string.IsNullOrEmpty(tarih) ? DateTime.Today : DateTime.Parse(tarih);
+    DateTime selectedDate = string.IsNullOrEmpty(tarih) ? DateTime.UtcNow : DateTime.Parse(tarih);
     ViewBag.TarihParam = selectedDate.ToString("yyyy-MM-dd");
     ViewBag.SelectedDate = selectedDate.ToString("dd.MM.yyyy");
 
@@ -401,7 +504,7 @@ if (string.IsNullOrEmpty(username))
     {
         _context.Harcamalar.Add(new Harcama
         {
-            Tarih = DateTime.Parse(tarih),
+            Tarih = DateTime.SpecifyKind(DateTime.Parse(tarih), DateTimeKind.Utc),
             Aciklama = aciklama,
             Tutar = tutar,
             KullaniciId = username
@@ -455,7 +558,9 @@ public IActionResult SporTakip()
     if (string.IsNullOrEmpty(username))
         return RedirectToAction("Index", "Home");
     ViewBag.Username = username;
-    string bugunAdi = DateTime.Now.ToString("dddd", new System.Globalization.CultureInfo("tr-TR")).ToUpper();
+    string bugunAdi = DateTime.UtcNow.ToLocalTime()
+    .ToString("dddd", new System.Globalization.CultureInfo("tr-TR"))
+    .ToUpper();
 
     string[] gunler = { "PAZARTESİ", "SALI", "ÇARŞAMBA", "PERŞEMBE", "CUMA", "CUMARTESİ" };
     int todayIndex = Array.FindIndex(gunler, g => g == bugunAdi);
@@ -484,7 +589,7 @@ public IActionResult Istatistik(string user)
         return RedirectToAction("Index", "Home");
 
     ViewBag.Username = username;
-    var today = DateTime.Today;
+    var today = DateTime.UtcNow;
     var thisMonth = new DateTime(today.Year, today.Month, 1);
     var nextMonth = thisMonth.AddMonths(1);
 
@@ -494,7 +599,8 @@ public IActionResult Istatistik(string user)
     for (int i = 6; i >= 0; i--)
     {
         var date = today.AddDays(-i);
-        var dayName = date.ToString("ddd", new System.Globalization.CultureInfo("tr-TR"));
+        var cultureCode = LanguageHelper.GetCultureCode(HttpContext);
+        var dayName = date.ToString("ddd", new System.Globalization.CultureInfo(cultureCode));
         waterDaysLabels.Add(dayName);
         try
         {
@@ -622,6 +728,76 @@ public IActionResult AntrenmanTamamla(int id, string user)
         _context.SaveChanges();
     }
     return Redirect($"/Dashboard/SporTakip?user={user}");
+}
+
+[HttpPost]
+public IActionResult UpdateProfile(string newEmail, string? currentPassword, string? newPassword, string? confirmNewPassword, IFormFile? profilePhoto)
+{
+    var username = HttpContext.Session.GetString("UserId");
+    if (string.IsNullOrEmpty(username) || !int.TryParse(username, out var userId))
+        return RedirectToAction("Index", "Home");
+
+    var user = _context.Kullanici.Find(userId);
+    if (user != null)
+    {
+        newEmail = newEmail?.Trim() ?? "";
+        if (!string.IsNullOrEmpty(newEmail))
+        {
+            var emailExists = _context.Kullanici.Any(u => u.Id != userId && u.Email.ToLower() == newEmail.ToLower());
+            if (emailExists)
+            {
+                TempData["ProfileError"] = LanguageHelper.T(HttpContext, "EmailInUseError");
+                return Redirect(Request.Headers["Referer"].ToString());
+            }
+
+            user.Email = newEmail;
+        }
+
+        // Check if user is attempting to change password
+        if (!string.IsNullOrEmpty(currentPassword) || !string.IsNullOrEmpty(newPassword) || !string.IsNullOrEmpty(confirmNewPassword))
+        {
+            if (string.IsNullOrEmpty(currentPassword) || string.IsNullOrEmpty(newPassword) || string.IsNullOrEmpty(confirmNewPassword))
+            {
+                TempData["ProfileError"] = LanguageHelper.T(HttpContext, "PasswordFieldsRequired");
+                return Redirect(Request.Headers["Referer"].ToString());
+            }
+
+            if (user.Password != currentPassword)
+            {
+                TempData["ProfileError"] = LanguageHelper.T(HttpContext, "IncorrectCurrentPassword");
+                return Redirect(Request.Headers["Referer"].ToString());
+            }
+
+            if (newPassword != confirmNewPassword)
+            {
+                TempData["ProfileError"] = LanguageHelper.T(HttpContext, "NewPasswordsMismatch");
+                return Redirect(Request.Headers["Referer"].ToString());
+            }
+
+            user.Password = newPassword;
+        }
+
+        if (profilePhoto != null && profilePhoto.Length > 0)
+        {
+            var uploads = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+            if (!Directory.Exists(uploads)) Directory.CreateDirectory(uploads);
+            
+            var filePath = Path.Combine(uploads, $"profile_{userId}.jpg");
+            using (var stream = profilePhoto.OpenReadStream())
+            {
+                using (var image = new MagickImage(stream))
+                {
+                    image.Format = MagickFormat.Jpeg;
+                    image.Write(filePath);
+                }
+            }
+        }
+
+        _context.SaveChanges();
+        TempData["ProfileSuccess"] = LanguageHelper.T(HttpContext, "ProfileUpdatedSuccess");
+    }
+
+    return Redirect(Request.Headers["Referer"].ToString());
 }
     }
 }

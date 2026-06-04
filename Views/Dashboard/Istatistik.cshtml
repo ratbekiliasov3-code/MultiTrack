@@ -26,44 +26,43 @@
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h3>@LanguageHelper.T(Context, "StatisticsTitle") - @Model.Username</h3>
-            <a href="/Dashboard" class="btn btn-sm btn-secondary">@LanguageHelper.T(Context, "BackButton")</a>
         </div>
 
         <div class="grid mb-3">
             <div class="stat-card">
                 <h5>@LanguageHelper.T(Context, "SummaryWaterTotal")</h5>
                 <canvas id="waterChart" height="120"></canvas>
-                <div class="mt-2">Toplam: <strong>@Model.WaterTotalLast7Days.ToString("0.##") L</strong> • Ortalama: <strong>@Model.WaterAverageLast7Days.ToString("0.##") L</strong></div>
+                <div class="mt-2">@LanguageHelper.T(Context, "Total"): <strong>@Model.WaterTotalLast7Days.ToString("0.##") L</strong> • @LanguageHelper.T(Context, "Average"): <strong>@Model.WaterAverageLast7Days.ToString("0.##") L</strong></div>
             </div>
 
             <div class="stat-card">
                 <h5>@LanguageHelper.T(Context, "SportsThisMonthTitle")</h5>
-                <div class="mt-2">Toplam Antrenman: <strong>@Model.TotalWorkoutsThisMonth</strong></div>
-                <div>Tamamlanan: <strong>@Model.CompletedWorkoutsThisMonth</strong></div>
-                <div>Başarı Oranı: <strong>@Model.WorkoutCompletionRate.ToString("0.##")%</strong></div>
+                <div class="mt-2">@LanguageHelper.T(Context, "TotalWorkoutsLabel"): <strong>@Model.TotalWorkoutsThisMonth</strong></div>
+                <div>@LanguageHelper.T(Context, "Completed"): <strong>@Model.CompletedWorkoutsThisMonth</strong></div>
+                <div>@LanguageHelper.T(Context, "SuccessRate"): <strong>@Model.WorkoutCompletionRate.ToString("0.##")%</strong></div>
             </div>
 
             <div class="stat-card">
                 <h5>@LanguageHelper.T(Context, "ExpenseThisMonthTitle")</h5>
-                <div class="mt-2">Toplam: <strong>@Model.MonthlyExpenseTotal.ToString("0.00") ₺</strong></div>
-                <div>İşlem Sayısı: <strong>@Model.ExpenseCountThisMonth</strong></div>
-                <div>Günlük Ortalama: <strong>@Model.AverageDailyExpense.ToString("0.00") ₺</strong></div>
+                <div class="mt-2">@LanguageHelper.T(Context, "Total"): <strong>@Model.MonthlyExpenseTotal.ToString("0.00") ₺</strong></div>
+                <div>@LanguageHelper.T(Context, "TransactionCount"): <strong>@Model.ExpenseCountThisMonth</strong></div>
+                <div>@LanguageHelper.T(Context, "AverageDailyExpense"): <strong>@Model.AverageDailyExpense.ToString("0.00") ₺</strong></div>
             </div>
         </div>
 
         <div class="grid">
             <div class="stat-card">
                 <h5>@LanguageHelper.T(Context, "ReadingProgressTitle")</h5>
-                <div class="mt-2">Kitap: <strong>@Model.CurrentBook</strong></div>
-                <div>Sayfa: <strong>@Model.PagesRead</strong> / <strong>@Model.TotalPages</strong></div>
-                <div>İlerleme: <strong>@Model.ReadingProgress.ToString("0.##")%</strong></div>
+                <div class="mt-2">@LanguageHelper.T(Context, "Book"): <strong>@Model.CurrentBook</strong></div>
+                <div>@LanguageHelper.T(Context, "Page"): <strong>@Model.PagesRead</strong> / <strong>@Model.TotalPages</strong></div>
+                <div>@LanguageHelper.T(Context, "Progress"): <strong>@Model.ReadingProgress.ToString("0.##")%</strong></div>
             </div>
 
             <div class="stat-card">
                 <h5>@LanguageHelper.T(Context, "TasksTitle")</h5>
-                <div class="mt-2">Toplam: <strong>@Model.TotalTasksThisMonth</strong></div>
-                <div>Tamamlanan: <strong>@Model.CompletedTasksThisMonth</strong></div>
-                <div>Tamamlama Oranı: <strong>@Model.TaskCompletionRate.ToString("0.##")%</strong></div>
+                <div class="mt-2">@LanguageHelper.T(Context, "Total"): <strong>@Model.TotalTasksThisMonth</strong></div>
+                <div>@LanguageHelper.T(Context, "Completed"): <strong>@Model.CompletedTasksThisMonth</strong></div>
+                <div>@LanguageHelper.T(Context, "CompletionRate"): <strong>@Model.TaskCompletionRate.ToString("0.##")%</strong></div>
             </div>
 
             <div class="stat-card">
@@ -89,7 +88,7 @@
                 data: {
                     labels: labels,
                     datasets: [{
-                        label: 'Litre',
+                        label: '@Html.Raw(LanguageHelper.T(Context, "WaterChartLabel"))',
                         data: data,
                         backgroundColor: '#4c8fe8'
                     }]

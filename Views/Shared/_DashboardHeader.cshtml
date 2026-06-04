@@ -1,8 +1,9 @@
+@inject MultiTrack.Models.MultiTrackDbContext DbContext
 @{
     string? username = ViewBag.Username as string;
     if (string.IsNullOrEmpty(username) && Model != null)
     {
-        var prop = Model.GetType().GetProperty("Username");
+        var prop = Model?.GetType().GetProperty("Username");
         if (prop != null)
         {
             username = prop.GetValue(Model)?.ToString();
@@ -12,8 +13,29 @@
     {
         username = "rad";
     }
+
+    var userIdStr = Context.Session.GetString("UserId");
+    string displayName = username;
+    MultiTrack.Models.Kullanici? currentUser = null;
+    int currentUserId = 0;
+
+    if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out var userId))
+    {
+        currentUserId = userId;
+        currentUser = DbContext.Kullanici.Find(userId);
+        if (currentUser != null)
+        {
+            displayName = currentUser.Email;
+        }
+    }
+    
+    var profilePhotoPath = $"/uploads/profile_{currentUserId}.jpg";
+    var localPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "uploads", $"profile_{currentUserId}.jpg");
+    var hasProfilePhoto = System.IO.File.Exists(localPath);
+    var avatarStyle = hasProfilePhoto ? $"background-image: url('{profilePhotoPath}?t={DateTime.Now.Ticks}'); background-size: cover; background-position: center;" : "background: linear-gradient(135deg, #26345e 0%, #102141 100%);";
 }
 
+<link rel="stylesheet" href="/css/dark-mode.css">
 <style>
     body {
         margin: 0;
@@ -98,7 +120,6 @@
         height: 44px;
         border-radius: 50%;
         border: 2px solid rgba(255,255,255,0.18);
-        background: linear-gradient(135deg, #26345e 0%, #102141 100%);
         box-shadow: inset 0 2px 6px rgba(255,255,255,0.08), 0 10px 30px rgba(0,0,0,0.15);
     }
     @@media (max-width: 768px) {
@@ -114,23 +135,344 @@
             text-align: left;
         }
     }
+
+    /* Dropdown styling */
+    .dashboard-topbar__user {
+        position: relative;
+        cursor: pointer;
+        user-select: none;
+    }
+    .dashboard-user-dropdown {
+        display: none;
+        position: absolute;
+        top: 55px;
+        right: 0;
+        background: #0d1b3e;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 12px;
+        min-width: 220px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+        z-index: 1000;
+        padding: 8px 0;
+        text-align: left;
+        animation: fadeIn 0.15s ease-out;
+    }
+    .dashboard-user-dropdown.show {
+        display: block;
+    }
+    .dashboard-user-dropdown .dropdown-header {
+        padding: 10px 16px;
+        font-size: 13px;
+        color: #ffd23f;
+        font-weight: 600;
+        word-break: break-all;
+    }
+    .dashboard-user-dropdown .dropdown-divider {
+        height: 1px;
+        background-color: rgba(255, 255, 255, 0.1);
+        margin: 6px 0;
+    }
+    .dashboard-user-dropdown .dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 16px;
+        color: #ffffff;
+        text-decoration: none;
+        font-size: 14px;
+        transition: background 0.2s, color 0.2s;
+    }
+    .dashboard-user-dropdown .dropdown-item:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #ffd23f;
+    }
+    .dashboard-user-dropdown .logout-btn {
+        color: #ff6b6b;
+    }
+    .dashboard-user-dropdown .logout-btn:hover {
+        background: rgba(255, 107, 107, 0.1);
+        color: #ff8787;
+    }
+
+    /* Modal styling */
+    .profile-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.65);
+        backdrop-filter: blur(8px);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+    .profile-modal-content {
+        background: #0f172a;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 16px;
+        width: 90%;
+        max-width: 440px;
+        padding: 30px;
+        color: white;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+        animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .profile-modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .profile-modal-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #ffd23f;
+    }
+    .profile-modal-close {
+        background: none;
+        border: none;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 28px;
+        cursor: pointer;
+        line-height: 1;
+        transition: color 0.2s;
+    }
+    .profile-modal-close:hover {
+        color: white;
+    }
+    .profile-modal-body .form-group {
+        margin-bottom: 18px;
+        text-align: left;
+    }
+    .profile-modal-body label {
+        display: block;
+        font-size: 13px;
+        font-weight: 600;
+        color: #94a3b8;
+        margin-bottom: 6px;
+    }
+    .profile-modal-body input {
+        width: 100%;
+        background: #1e293b;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 8px;
+        padding: 10px 14px;
+        color: white;
+        font-size: 14px;
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .profile-modal-body input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        background: rgba(255, 255, 255, 0.15);
+    }
+    .file-input { display: none; }
+    .file-label {
+        display: flex; align-items: center; gap: 10px;
+        padding: 12px 16px; background: rgba(255, 255, 255, 0.05);
+        border: 1px dashed rgba(255, 255, 255, 0.3); border-radius: 8px;
+        color: #fff; cursor: pointer; transition: all 0.2s ease;
+        font-weight: 500; font-size: 14px;
+    }
+    .file-label:hover {
+        background: rgba(255, 255, 255, 0.1); border-color: #fff;
+    }
+    .profile-modal-btn {
+        width: 100%;
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        transition: background 0.2s, transform 0.2s;
+        margin-top: 10px;
+    }
+    .profile-modal-btn:hover {
+        background: #2563eb;
+    }
+    .profile-modal-btn:active {
+        transform: scale(0.98);
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(-10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @@keyframes scaleIn {
+        from { opacity: 0; transform: scale(0.95); }
+        to { opacity: 1; transform: scale(1); }
+    }
+
+    /* Alert Banner styling */
+    .profile-alert-banner {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 14px 24px;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        animation: slideInRight 0.3s ease-out;
+    }
+    .profile-alert-success {
+        background-color: #10b981;
+        border-left: 5px solid #047857;
+    }
+    .profile-alert-danger {
+        background-color: #ef4444;
+        border-left: 5px solid #b91c1c;
+    }
+    @@keyframes slideInRight {
+        from { transform: translateX(120%); }
+        to { transform: translateX(0); }
+    }
 </style>
 
 <div class="dashboard-topbar">
-    <a class="dashboard-topbar__back" href="/Dashboard?user=@username" onclick="if (history.length > 1) { history.back(); return false; }">
+    <a class="dashboard-topbar__back" href="/Dashboard/Index?user=@username">
         <span>&larr;</span> @LanguageHelper.T(Context, "GoBack")
     </a>
     <div class="dashboard-topbar__brand">
         <div class="dashboard-topbar__logo">Multi<span>Track</span></div>
     </div>
-    <div class="dashboard-topbar__user">
-        <div class="dashboard-topbar__user-text">
-            <span>@LanguageHelper.T(Context, "WelcomeLabel")</span>
-            <span class="dashboard-topbar__user-name">@username</span>
+    
+    <div class="d-flex align-items-center gap-3">
+        <div class="dashboard-topbar__user" onclick="toggleUserDropdown(event)">
+            <div class="dashboard-topbar__user-text">
+                <span>@LanguageHelper.T(Context, "WelcomeLabel")</span>
+                <span class="dashboard-topbar__user-name">@displayName</span>
+            </div>
+            <div class="dashboard-topbar__avatar" style="@avatarStyle"></div>
+            
+            <!-- User Dropdown Menu -->
+            <div class="dashboard-user-dropdown" id="userDropdown" onclick="event.stopPropagation()">
+                <div class="dropdown-header">@displayName</div>
+                <div class="dropdown-divider"></div>
+                
+                @if (Context.Request.Path.HasValue && (Context.Request.Path.Value.Contains("ParaTakip") || Context.Request.Path.Value.Contains("Dashboard"))) {
+                    <div class="dropdown-item" style="padding-top: 5px; padding-bottom: 5px;">
+                        <partial name="_LanguageSelector" />
+                    </div>
+                    <a href="javascript:void(0)" onclick="toggleDarkMode(event)" class="dropdown-item d-flex align-items-center gap-2">
+                        <i class="bi bi-moon dark-mode-icon" style="width: 20px; text-align: center;"></i>
+                        <span class="dark-mode-text" data-dark-label="@LanguageHelper.T(Context, "DarkModeLabel")" data-light-label="@LanguageHelper.T(Context, "LightModeLabel")">@LanguageHelper.T(Context, "DarkModeLabel")</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                }
+
+                <a href="javascript:void(0)" onclick="openProfileModal(event)" class="dropdown-item d-flex align-items-center gap-2">
+                    <div style="width: 20px; height: 20px; border-radius: 50%; @avatarStyle flex-shrink: 0;"></div>
+                    @LanguageHelper.T(Context, "ProfileSettings")
+                </a>
+                <a href="/Home/Logout" class="dropdown-item logout-btn">
+                    <i class="bi bi-box-arrow-right"></i> @LanguageHelper.T(Context, "Logout")
+                </a>
+            </div>
         </div>
-        <div class="dashboard-topbar__language">
-            <partial name="_LanguageSelector" />
-        </div>
-        <div class="dashboard-topbar__avatar"></div>
     </div>
 </div>
+
+<!-- Profile Edit Modal -->
+<div class="profile-modal-overlay" id="profileModal">
+    <div class="profile-modal-content">
+        <div class="profile-modal-header">
+            <h5 class="profile-modal-title">@LanguageHelper.T(Context, "EditProfileTitle")</h5>
+            <button class="profile-modal-close" onclick="closeProfileModal()">&times;</button>
+        </div>
+        <form action="/Dashboard/UpdateProfile" method="post" enctype="multipart/form-data">
+            <div class="profile-modal-body">
+                <div class="form-group">
+                    <label>@LanguageHelper.T(Context, "ProfilePhotoLabel")</label>
+                    <input type="file" name="profilePhoto" id="profilePhotoInputHdr" accept="image/*" class="file-input" onchange="document.getElementById('fileNameTextHdr').textContent = this.files[0] ? this.files[0].name : '@LanguageHelper.T(Context, "ChooseFileLabel")';" />
+                    <label for="profilePhotoInputHdr" class="file-label">
+                        <i class="bi bi-cloud-arrow-up fs-5"></i>
+                        <span id="fileNameTextHdr">@LanguageHelper.T(Context, "ChooseFileLabel")</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>@LanguageHelper.T(Context, "NewEmailLabel")</label>
+                    <input type="email" name="newEmail" value="@displayName" required autocomplete="off" />
+                </div>
+                <div class="form-group">
+                    <label>@LanguageHelper.T(Context, "CurrentPasswordLabel")</label>
+                    <input type="password" name="currentPassword" placeholder="••••••••" autocomplete="current-password" />
+                </div>
+                <div class="form-group">
+                    <label>@LanguageHelper.T(Context, "NewPasswordLabel")</label>
+                    <input type="password" name="newPassword" placeholder="••••••••" autocomplete="new-password" />
+                </div>
+                <div class="form-group">
+                    <label>@LanguageHelper.T(Context, "ConfirmNewPasswordLabel")</label>
+                    <input type="password" name="confirmNewPassword" placeholder="••••••••" autocomplete="new-password" />
+                </div>
+                <button type="submit" class="profile-modal-btn">@LanguageHelper.T(Context, "SaveChangesButton")</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Alert Banners for TempData -->
+@if (TempData["ProfileSuccess"] != null)
+{
+    <div class="profile-alert-banner profile-alert-success" id="profileAlert">
+        <i class="bi bi-check-circle-fill"></i> @TempData["ProfileSuccess"]
+    </div>
+    <script>
+        setTimeout(() => {
+            const alert = document.getElementById("profileAlert");
+            if (alert) alert.style.display = "none";
+        }, 4000);
+    </script>
+}
+@if (TempData["ProfileError"] != null)
+{
+    <div class="profile-alert-banner profile-alert-danger" id="profileAlert">
+        <i class="bi bi-exclamation-triangle-fill"></i> @TempData["ProfileError"]
+    </div>
+    <script>
+        setTimeout(() => {
+            const alert = document.getElementById("profileAlert");
+            if (alert) alert.style.display = "none";
+        }, 4000);
+    </script>
+}
+
+<script>
+    function toggleUserDropdown(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById("userDropdown");
+        dropdown.classList.toggle("show");
+    }
+
+    function openProfileModal(event) {
+        event.stopPropagation();
+        document.getElementById("userDropdown").classList.remove("show");
+        document.getElementById("profileModal").style.display = "flex";
+    }
+
+    function closeProfileModal() {
+        document.getElementById("profileModal").style.display = "none";
+    }
+
+    window.addEventListener("click", function(event) {
+        const dropdown = document.getElementById("userDropdown");
+        if (dropdown && dropdown.classList.contains("show")) {
+            dropdown.classList.remove("show");
+        }
+        const modal = document.getElementById("profileModal");
+        if (modal && event.target === modal) {
+            modal.style.display = "none";
+        }
+    });
+</script>
+<script src="/js/dark-mode.js"></script>

@@ -1,11 +1,11 @@
 @model MultiTrack.Models.DashboardParaTakipViewModel
 @{
     Layout = null;
-    var culture = new System.Globalization.CultureInfo("tr-TR");
+    var culture = new System.Globalization.CultureInfo(LanguageHelper.GetCultureCode(Context));
 }
 
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="@LanguageHelper.GetCurrentLanguage(Context).ToLowerInvariant()">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -80,6 +80,13 @@
             padding: 24px;
             box-shadow: 0 4px 18px rgba(0,0,0,0.08);
             min-height: 140px;
+        }
+        .summary-card.daily-summary {
+            background-image: url('');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            color: #112240;
         }
 
         .summary-card h3 {
@@ -183,15 +190,15 @@
                 <div class="page-title">@LanguageHelper.T(Context, "ExpenseTrackingPageTitle")</div>
                 <div class="page-subtitle">@LanguageHelper.T(Context, "ExpenseTrackingSubtitle")</div>
             </div>
-            <a href="/Dashboard/Index?user=@Model.Username" class="btn-back">Geri Dön</a>
         </div>
 
         <div class="summary-grid">
-            <div class="summary-card">
-                <p>@LanguageHelper.T(Context, "TodayLabel")</p>
-                <h3>@Model.TodayTotal.ToString("0.00") ₺</h3>
-                <p>@Model.Tarih.ToString("dd MMMM yyyy", culture)</p>
-            </div>
+            <div class="summary-card daily-summary">
+
+    <p>@LanguageHelper.T(Context, "TodayLabel")</p>
+    <h3>@Model.TodayTotal.ToString("0.00") ₺</h3>
+    <p>@Model.Tarih.ToString("dd MMMM yyyy", culture)</p>
+</div>
             <div class="summary-card">
                 <p>@LanguageHelper.T(Context, "ThisMonthLabel")</p>
                 <h3>@Model.MonthlyTotal.ToString("0.00") ₺</h3>
@@ -234,7 +241,7 @@
                             <h5 class="mb-0">@LanguageHelper.T(Context, "ExpenseDetailsText")</h5>
                             <small class="text-muted">@LanguageHelper.T(Context, "RecentExpenses")</small>
                         </div>
-                        <span class="badge bg-primary">@Model.Expenses.Count adet</span>
+                        <span class="badge bg-primary">@Model.Expenses.Count @LanguageHelper.T(Context, "Items")</span>
                     </div>
 
                     @if (!Model.Expenses.Any())

@@ -1,11 +1,12 @@
 using System.ComponentModel.DataAnnotations;
-using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace MultiTrack.Models
 {
     public class Kullanici
     {
         [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int Id { get; set; }
 
         [Required]
@@ -14,7 +15,6 @@ namespace MultiTrack.Models
         [Required]
         public string Password { get; set; } = string.Empty;
 
-        // İlişki: Bir kullanıcının birden fazla görevi olabilir
         public ICollection<Gorev>? Gorevler { get; set; }
     }
 }

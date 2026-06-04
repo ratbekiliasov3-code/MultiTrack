@@ -1,4 +1,4 @@
-﻿@{
+@{
     Layout = null;
     string activeTab = ViewBag.ActiveTab ?? "login";
 }
@@ -322,11 +322,19 @@
                     <button type="button" id="registerTabBtn" class="tab-btn @(activeTab == "register" ? "active" : "")" onclick="switchTab('register')">@LanguageHelper.T(Context, "RegisterTab")</button>
                 </div>
 
-                @if (ViewBag.ErrorMessage != null)
+                @if (ViewBag.ErrorMessageKey != null)
+                {
+                    <div class="alert-danger-custom">@LanguageHelper.T(Context, ViewBag.ErrorMessageKey)</div>
+                }
+                else if (ViewBag.ErrorMessage != null)
                 {
                     <div class="alert-danger-custom">@ViewBag.ErrorMessage</div>
                 }
-                @if (ViewBag.SuccessMessage != null)
+                @if (ViewBag.SuccessMessageKey != null)
+                {
+                    <div class="alert-success-custom">@LanguageHelper.T(Context, ViewBag.SuccessMessageKey)</div>
+                }
+                else if (ViewBag.SuccessMessage != null)
                 {
                     <div class="alert-success-custom">@ViewBag.SuccessMessage</div>
                 }

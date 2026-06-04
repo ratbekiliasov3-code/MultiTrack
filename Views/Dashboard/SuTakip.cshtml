@@ -253,7 +253,9 @@
 <script>
     // Sistem tarihlerini yönetmek için global değişkenler
     let currentDate = new Date(); // Gerçek şu anki zaman
-    let selectedDate = new Date("@Model.SecilenTarih.ToString("yyyy-MM-dd")"); // Kullanıcının tıkladığı aktif gün
+    let selectedDateStr = "@Model.SecilenTarih.ToString("yyyy-MM-dd")";
+    let parts = selectedDateStr.split('-');
+    let selectedDate = new Date(parts[0], parts[1] - 1, parts[2]); // Kullanıcının tıkladığı aktif gün
     const username = "@Model.Username";
 
     // Veritabanından gelen su verileri (ml cinsinden)
@@ -396,11 +398,10 @@
     // Seçili Günü Sıfırlama Fonksiyonu
     async function resetToday() {
         let dateKey = formatDate(selectedDate);
-        delete waterDatabase[dateKey];
-        await deleteWater();
-
-        // Yenile
-        renderCalendar();
+        if (await deleteWater()) {
+            delete waterDatabase[dateKey];
+            renderCalendar();
+        }
     }
 
     async function postWater(valueMl) {
@@ -431,7 +432,9 @@
 
         if (!response.ok) {
             alert(resetErrorMsg);
+            return false;
         }
+        return true;
     }
 
     // "Bugüne Git" Butonunun Fonksiyonu

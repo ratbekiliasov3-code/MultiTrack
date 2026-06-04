@@ -109,7 +109,7 @@ body {
 
     width: 320px;
 
-    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .card h3 {
@@ -130,7 +130,7 @@ body {
 
     border-radius: 25px;
 
-    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
 }
 
 .tabs {

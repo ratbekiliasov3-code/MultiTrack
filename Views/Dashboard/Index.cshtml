@@ -1,5 +1,25 @@
+@inject MultiTrack.Models.MultiTrackDbContext DbContext
 @{
     Layout = null;
+    var userIdStr = Context.Session.GetString("UserId");
+    string displayName = "Guest";
+    MultiTrack.Models.Kullanici? currentUser = null;
+    int currentUserId = 0;
+
+    if (!string.IsNullOrEmpty(userIdStr) && int.TryParse(userIdStr, out var userId))
+    {
+        currentUserId = userId;
+        currentUser = DbContext.Kullanici.Find(userId);
+        if (currentUser != null)
+        {
+            displayName = currentUser.Email;
+        }
+    }
+    
+    var profilePhotoPath = $"/uploads/profile_{currentUserId}.jpg";
+    var localPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", "uploads", $"profile_{currentUserId}.jpg");
+    var hasProfilePhoto = System.IO.File.Exists(localPath);
+    var profileImageSrc = hasProfilePhoto ? $"{profilePhotoPath}?t={DateTime.Now.Ticks}" : "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_1280.png";
 }
 
 <!DOCTYPE html>
@@ -11,6 +31,7 @@
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="/css/dark-mode.css">
 
     <style>
         body {
@@ -130,8 +151,7 @@
         .card-kitap { background-image: url('https://images.unsplash.com/photo-1506880018603-83d5b814b5a6?q=80&w=600'); }
         .card-spor { background-image: url('https://images.unsplash.com/photo-1517838277536-f5f99be501cd?q=80&w=600'); }
         
-        .card-finans { background-image: none; background-color: #ffffff; }
-        .card-finans::before { display: none; }
+        .card-finans { background-image: url('https://imgs.search.brave.com/-o8VKtTaA7d8Aigf43ijL6FvxyD7H5VaDTudwCnsfY0/rs:fit:860:0:0:0/g:ce/aHR0cHM6Ly9pbWcu/ZnJlZXBpay5jb20v/ZnJlZS1waG90by9s/YXllci1tb25leS13/aXRoLWNsb2NrLWNl/bnRlci1maW5hbmNl/LWlkZWFfMTI2OC0x/NzQ1OS5qcGc_Z2E9/R0ExLjEuMzUxNTk3/MzY1LjE3NzczMjQx/MDMmc2VtdD1haXNf/aHlicmlkJnc9NzQw/JnE9ODA'); }
 
         /* Buton Stilleri */
         .btn-card {
@@ -148,10 +168,12 @@
             opacity: 0.9;
         }
 
-        .btn-blue { background-color: #4c8fe8; color: white; }
-        .btn-dark-blue { background-color: #1a2b49; color: white; }
-        .btn-orange { background-color: #f09b0a; color: white; }
-        .btn-red { background-color: #ef4a4a; color: white; }
+        .btn-blue { background-color: #3b82f6; color: white; }
+        .btn-dark-blue { background-color: #1e293b; color: white; }
+        .btn-orange { background-color: #f59e0b; color: white; }
+        .btn-red { background-color: #ef4444; color: white; }
+        .btn-green { background-color: #10b981; color: white; }
+        .btn-purple { background-color: #8b5cf6; color: white; }
 
         /* Kitap Kartı İçeriği */
         .book-detail {
@@ -212,12 +234,208 @@
             margin-bottom: 4px;
         }
 
-        @@media (max-width: 992px) {
-            .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+        /* Dropdown styling */
+        .dashboard-user-dropdown {
+            display: none;
+            position: absolute;
+            top: 55px;
+            right: 0;
+            background: #0d1b3e;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 12px;
+            min-width: 220px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+            z-index: 1000;
+            padding: 8px 0;
+            text-align: left;
+            animation: fadeIn 0.15s ease-out;
         }
-        @@media (max-width: 768px) {
-            .dashboard-grid { grid-template-columns: 1fr; }
-            .navbar { padding: 15px 20px; }
+        .dashboard-user-dropdown.show {
+            display: block;
+        }
+        .dashboard-user-dropdown .dropdown-header {
+            padding: 10px 16px;
+            font-size: 13px;
+            color: #ffd23f;
+            font-weight: 600;
+            word-break: break-all;
+        }
+        .dashboard-user-dropdown .dropdown-divider {
+            height: 1px;
+            background-color: rgba(255, 255, 255, 0.1);
+            margin: 6px 0;
+        }
+        .dashboard-user-dropdown .dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.2s, color 0.2s;
+        }
+        .dashboard-user-dropdown .dropdown-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #ffd23f;
+        }
+        .dashboard-user-dropdown .logout-btn {
+            color: #ff6b6b;
+        }
+        .dashboard-user-dropdown .logout-btn:hover {
+            background: rgba(255, 107, 107, 0.1);
+            color: #ff8787;
+        }
+
+        /* Modal styling */
+        .profile-modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+        .profile-modal-content {
+            background: #0f172a;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 440px;
+            padding: 30px;
+            color: white;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+            animation: scaleIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .profile-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .profile-modal-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #ffd23f;
+        }
+        .profile-modal-body input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background: rgba(255, 255, 255, 0.15);
+        }
+        .file-input { display: none; }
+        .file-label {
+            display: flex; align-items: center; gap: 10px;
+            padding: 12px 16px; background: rgba(255, 255, 255, 0.05);
+            border: 1px dashed rgba(255, 255, 255, 0.3); border-radius: 8px;
+            color: #fff; cursor: pointer; transition: all 0.2s ease;
+            font-weight: 500; font-size: 14px;
+        }
+        .file-label:hover {
+            background: rgba(255, 255, 255, 0.1); border-color: #fff;
+        }
+        .profile-modal-footer {
+            margin-top: 20px;
+        }
+        .profile-modal-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 28px;
+            cursor: pointer;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .profile-modal-close:hover {
+            color: white;
+        }
+        .profile-modal-body .form-group {
+            margin-bottom: 18px;
+            text-align: left;
+        }
+        .profile-modal-body label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #94a3b8;
+            margin-bottom: 6px;
+        }
+        .profile-modal-body input {
+            width: 100%;
+            background: #1e293b;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 8px;
+            padding: 10px 14px;
+            color: white;
+            font-size: 14px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .profile-modal-body input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+            outline: none;
+        }
+        .profile-modal-btn {
+            width: 100%;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.2s;
+            margin-top: 10px;
+        }
+        .profile-modal-btn:hover {
+            background: #2563eb;
+        }
+        .profile-modal-btn:active {
+            transform: scale(0.98);
+        }
+
+        @@keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @@keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        /* Alert Banner styling */
+        .profile-alert-banner {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 14px 24px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideInRight 0.3s ease-out;
+        }
+        .profile-alert-success {
+            background-color: #10b981;
+            border-left: 5px solid #047857;
+        }
+        .profile-alert-danger {
+            background-color: #ef4444;
+            border-left: 5px solid #b91c1c;
+        }
+        @@keyframes slideInRight {
+            from { transform: translateX(120%); }
+            to { transform: translateX(0); }
         }
     </style>
 </head>
@@ -227,9 +445,32 @@
     <div class="logo">
         Multi<span>Track</span>
     </div>
-    <div class="user-profile">
-        <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=100" alt="Profil" class="profile-img">
-        <span class="welcome-text">@LanguageHelper.T(Context, "WelcomeLabel") <strong>@ViewBag.Username</strong></span>
+    <div class="d-flex align-items-center gap-3">
+        <div class="user-profile" onclick="toggleUserDropdown(event)" style="cursor: pointer; position: relative; user-select: none;">
+            <img src="@profileImageSrc" alt="Profil" class="profile-img">
+            <span class="welcome-text">@LanguageHelper.T(Context, "WelcomeLabel") <strong>@displayName</strong></span>
+            
+            <!-- User Dropdown Menu -->
+            <div class="dashboard-user-dropdown" id="userDropdown" onclick="event.stopPropagation()">
+                <div class="dropdown-header">@displayName</div>
+                <div class="dropdown-divider"></div>
+                <div class="dropdown-item" style="padding-top: 5px; padding-bottom: 5px;">
+                    <partial name="_LanguageSelector" />
+                </div>
+                <a href="javascript:void(0)" onclick="toggleDarkMode(event)" class="dropdown-item d-flex align-items-center gap-2">
+                    <i class="bi bi-moon dark-mode-icon" style="width: 20px; text-align: center;"></i>
+                    <span class="dark-mode-text" data-dark-label="@LanguageHelper.T(Context, "DarkModeLabel")" data-light-label="@LanguageHelper.T(Context, "LightModeLabel")">@LanguageHelper.T(Context, "DarkModeLabel")</span>
+                </a>
+                <div class="dropdown-divider"></div>
+                <a href="javascript:void(0)" onclick="openProfileModal(event)" class="dropdown-item d-flex align-items-center gap-2">
+                    <img src="@profileImageSrc" alt="Avatar" style="width: 20px; height: 20px; border-radius: 50%; object-fit: cover;">
+                    @LanguageHelper.T(Context, "ProfileSettings")
+                </a>
+                <a href="/Home/Logout" class="dropdown-item logout-btn">
+                    <i class="bi bi-box-arrow-right"></i> @LanguageHelper.T(Context, "Logout")
+                </a>
+            </div>
+        </div>
     </div>
 </nav>
 
@@ -243,74 +484,10 @@
                         <div class="card-title"><i class="bi bi-droplet-fill text-primary"></i> @LanguageHelper.T(Context, "WaterCardTitle")</div>
                         <div class="card-meta">@LanguageHelper.T(Context, "WaterCardGoal")</div>
                     </div>
-                    <div class="big-value">0.0 L / 3.0 L</div>
+                    <div class="big-value">@(ViewBag.TodayWaterTotal is double w ? w.ToString("0.0") : "0.0") L / 3.0 L</div>
                 </div>
-                <a href="/Dashboard/SuTakip?user=@Context.Request.Query["user"]" class="btn btn-primary w-100" style="background-color: #4c8fe8; border: none; border-radius: 12px; padding: 10px;">
+                <a href="/Dashboard/SuTakip?user=@Context.Request.Query["user"]" class="btn-card btn-blue text-center text-decoration-none d-block">
     @LanguageHelper.T(Context, "WaterCardLink")
-</a>
-            </div>
-        </div>
-
-        <div class="dashboard-card card-istatistik">
-            <div class="card-content">
-                <div>
-                    <div class="card-header-area">
-                        <div class="card-title"><i class="bi bi-bar-chart-line-fill text-primary"></i> @LanguageHelper.T(Context, "StatsCardTitle")</div>
-                    </div>
-                    <div class="mt-2 text-center">
-                        <span class="font-weight-bold d-block text-dark fw-bold" style="font-size:15px;">@LanguageHelper.T(Context, "StatsCardDesc")</span>
-                        <span class="center-desc d-block mt-1"></span>
-                    </div>
-                </div>
-                <a href="/Dashboard/Istatistik?user=@ViewBag.Username" class="btn-card btn-blue text-center text-decoration-none">@LanguageHelper.T(Context, "StatsCardLink")</a>
-            </div>
-        </div>
-
-        <div class="dashboard-card card-plan">
-            <div class="card-content">
-                <div>
-                    <div class="card-header-area">
-                        <div class="card-title"><i class="bi bi-sticky-fill text-warning"></i> @LanguageHelper.T(Context, "PlanCardTitle")</div>
-                    </div>
-                    <div class="placeholder-text">@LanguageHelper.T(Context, "PlanCardEmpty")</div>
-                </div>
-<a href="/Dashboard/GunlukPlan?user=@Context.Request.Query["user"]" class="btn-card btn-dark-blue text-center text-decoration-none">
-    @LanguageHelper.T(Context, "PlanCardLink")
-</a>
-            </div>
-        </div>
-
-        <div class="dashboard-card card-kitap">
-            <div class="card-content">
-                <div>
-                    <div class="card-header-area">
-                        <div class="card-title"><i class="bi bi-book-half text-primary"></i> @LanguageHelper.T(Context, "BookCardTitle")</div>
-                    </div>
-                    <div class="book-detail">
-                        <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=100" alt="Yazar" class="book-img">
-                        <div class="book-info">
-                            <h5>rrrrrr</h5>
-                            <p>Cengiz Aytmatov</p>
-                        </div>
-                    </div>
-                </div>
-               <a href="/Dashboard/KitapTakip?user=@ViewBag.Username" class="btn btn-primary btn-card">@LanguageHelper.T(Context, "BookCardLink")</a>
-            </div>
-        </div>
-
-        <div class="dashboard-card card-spor">
-            <div class="card-content">
-                <div>
-                    <div class="card-header-area">
-                        <div class="card-title"><i class="bi bi-capslock-fill text-primary"></i> @LanguageHelper.T(Context, "WorkoutCardTitle")</div>
-                        <div class="card-meta">@LanguageHelper.T(Context, "WorkoutCardMeta")</div>
-                    </div>
-                    <div class="placeholder-text text-dark fw-medium mt-3">@LanguageHelper.T(Context, "WorkoutCardEmpty")</div>
-                </div>
-<a href="/Dashboard/SporTakip?user=@ViewBag.Username" 
-   class="btn btn-primary" 
-   style="width: 100%; padding: 12px; border-radius: 12px; font-weight: bold; background-color: #0d6efd; border: none;">
-   @LanguageHelper.T(Context, "WorkoutCardLink")
 </a>
             </div>
         </div>
@@ -322,15 +499,199 @@
                         <div class="card-title"><i class="bi bi-wallet2 text-primary"></i> @LanguageHelper.T(Context, "ExpenseCardTitle")</div>
                     </div>
                     <div class="finance-list">
-                    <div>@LanguageHelper.T(Context, "ExpenseCardTotalToday") <strong>@(ViewBag.TodayExpenseTotal is double t ? t.ToString("0.00") : "0.00") ₺</strong></div>
-                    <div>@LanguageHelper.T(Context, "ExpenseCardTotalMonth") <strong>@(ViewBag.MonthlyExpenseTotal is double m ? m.ToString("0.00") : "0.00") ₺</strong></div>
+                        <div>@LanguageHelper.T(Context, "ExpenseCardTotalToday") <strong>@(ViewBag.TodayExpenseTotal is double t ? t.ToString("0.00") : "0.00") ₺</strong></div>
+                        <div>@LanguageHelper.T(Context, "ExpenseCardTotalMonth") <strong>@(ViewBag.MonthlyExpenseTotal is double m ? m.ToString("0.00") : "0.00") ₺</strong></div>
+                    </div>
                 </div>
+                <a href="/Dashboard/ParaTakip?user=@ViewBag.Username" class="btn-card btn-red text-center text-decoration-none d-block">@LanguageHelper.T(Context, "ExpenseCardLink")</a>
             </div>
-                <a href="/Dashboard/ParaTakip?user=@ViewBag.Username" class="btn-card btn-red text-center text-decoration-none">@LanguageHelper.T(Context, "ExpenseCardLink")</a>
+        </div>
+
+        <div class="dashboard-card card-plan">
+            <div class="card-content">
+                <div>
+                    <div class="card-header-area">
+                        <div class="card-title"><i class="bi bi-sticky-fill text-warning"></i> @LanguageHelper.T(Context, "PlanCardTitle")</div>
+                    </div>
+                    @if (ViewBag.TodaysPlanCount != null && (int)ViewBag.TodaysPlanCount > 0)
+                    {
+                        <div class="finance-list">
+                            <div>@LanguageHelper.T(Context, "TotalPlansLabel") <strong>@ViewBag.TodaysPlanCount</strong></div>
+                            <div>@LanguageHelper.T(Context, "CompletedLabel") <strong>@ViewBag.TodaysCompletedPlanCount</strong></div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="placeholder-text">@LanguageHelper.T(Context, "PlanCardEmpty")</div>
+                    }
+                </div>
+<a href="/Dashboard/GunlukPlan?user=@Context.Request.Query["user"]" class="btn-card btn-dark-blue text-center text-decoration-none d-block">
+    @LanguageHelper.T(Context, "PlanCardLink")
+</a>
+            </div>
+        </div>
+
+        <div class="dashboard-card card-kitap">
+            <div class="card-content">
+                <div>
+                    <div class="card-header-area">
+                        <div class="card-title"><i class="bi bi-book-half text-primary"></i> @LanguageHelper.T(Context, "BookCardTitle")</div>
+                    </div>
+                    @if (ViewBag.Book != null)
+                    {
+                        var kitap = ViewBag.Book as MultiTrack.Models.KitapTakip;
+                        <div class="book-detail">
+                            <img src="https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?q=80&w=100" alt="Yazar" class="book-img">
+                            <div class="book-info">
+                                <h5>@kitap?.KitapAdi</h5>
+                                <p>@kitap?.KalinanSayfa / @kitap?.ToplamSayfa @LanguageHelper.T(Context, "Page")</p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="placeholder-text">@LanguageHelper.T(Context, "NoBookAddedYet")</div>
+                    }
+                </div>
+                <a href="/Dashboard/KitapTakip?user=@ViewBag.Username" class="btn-card btn-green text-center text-decoration-none d-block">@LanguageHelper.T(Context, "BookCardLink")</a>
+            </div>
+        </div>
+
+        <div class="dashboard-card card-spor">
+            <div class="card-content">
+                <div>
+                    <div class="card-header-area">
+                        <div class="card-title"><i class="bi bi-capslock-fill text-primary"></i> @LanguageHelper.T(Context, "WorkoutCardTitle")</div>
+                        <div class="card-meta">@LanguageHelper.T(Context, "WorkoutCardMeta")</div>
+                    </div>
+                    @if (ViewBag.TodaysWorkoutCount != null && (int)ViewBag.TodaysWorkoutCount > 0)
+                    {
+                        <div class="placeholder-text text-dark fw-medium mt-3">
+                            @LanguageHelper.T(Context, "WorkoutTodayLabel") @ViewBag.TodaysCompletedWorkoutCount / @ViewBag.TodaysWorkoutCount @LanguageHelper.T(Context, "MovesLabel")
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="placeholder-text text-dark fw-medium mt-3">@LanguageHelper.T(Context, "WorkoutCardEmpty")</div>
+                    }
+                </div>
+<a href="/Dashboard/SporTakip?user=@ViewBag.Username" class="btn-card btn-orange text-center text-decoration-none d-block">
+   @LanguageHelper.T(Context, "WorkoutCardLink")
+</a>
+            </div>
+        </div>
+    
+        <div class="dashboard-card card-istatistik">
+            <div class="card-content">
+                <div>
+                    <div class="card-header-area">
+                        <div class="card-title"><i class="bi bi-bar-chart-line-fill text-primary"></i> @LanguageHelper.T(Context, "StatsCardTitle")</div>
+                    </div>
+                    <div class="mt-2 text-center">
+                        <span class="font-weight-bold d-block text-dark fw-bold" style="font-size:15px;">@LanguageHelper.T(Context, "StatsCardDesc")</span>
+                        <span class="center-desc d-block mt-1"></span>
+                    </div>
+                </div>
+                <a href="/Dashboard/Istatistik?user=@ViewBag.Username" class="btn-card btn-purple text-center text-decoration-none d-block">@LanguageHelper.T(Context, "StatsCardLink")</a>
+            </div>
         </div>
 
     </div>
 </div>
 
+<!-- Profile Edit Modal -->
+<div class="profile-modal-overlay" id="profileModal">
+    <div class="profile-modal-content">
+        <div class="profile-modal-header">
+            <h5 class="profile-modal-title">@LanguageHelper.T(Context, "EditProfileTitle")</h5>
+            <button class="profile-modal-close" onclick="closeProfileModal()">&times;</button>
+        </div>
+        <form action="/Dashboard/UpdateProfile" method="post" enctype="multipart/form-data">
+            <div class="profile-modal-body">
+                <div class="form-group">
+                    <label>@LanguageHelper.T(Context, "ProfilePhotoLabel")</label>
+                    <input type="file" name="profilePhoto" id="profilePhotoInput" accept="image/*" class="file-input" onchange="document.getElementById('fileNameText').textContent = this.files[0] ? this.files[0].name : '@LanguageHelper.T(Context, "ChooseFileLabel")';" />
+                    <label for="profilePhotoInput" class="file-label">
+                        <i class="bi bi-cloud-arrow-up fs-5"></i>
+                        <span id="fileNameText">@LanguageHelper.T(Context, "ChooseFileLabel")</span>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>@LanguageHelper.T(Context, "NewEmailLabel")</label>
+                    <input type="email" name="newEmail" value="@displayName" required autocomplete="off" />
+                </div>
+                <div class="form-group">
+                    <label>@LanguageHelper.T(Context, "CurrentPasswordLabel")</label>
+                    <input type="password" name="currentPassword" placeholder="••••••••" autocomplete="current-password" />
+                </div>
+                <div class="form-group">
+                    <label>@LanguageHelper.T(Context, "NewPasswordLabel")</label>
+                    <input type="password" name="newPassword" placeholder="••••••••" autocomplete="new-password" />
+                </div>
+                <div class="form-group">
+                    <label>@LanguageHelper.T(Context, "ConfirmNewPasswordLabel")</label>
+                    <input type="password" name="confirmNewPassword" placeholder="••••••••" autocomplete="new-password" />
+                </div>
+                <button type="submit" class="profile-modal-btn">@LanguageHelper.T(Context, "SaveChangesButton")</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Alert Banners for TempData -->
+@if (TempData["ProfileSuccess"] != null)
+{
+    <div class="profile-alert-banner profile-alert-success" id="profileAlert">
+        <i class="bi bi-check-circle-fill"></i> @TempData["ProfileSuccess"]
+    </div>
+    <script>
+        setTimeout(() => {
+            const alert = document.getElementById("profileAlert");
+            if (alert) alert.style.display = "none";
+        }, 4000);
+    </script>
+}
+@if (TempData["ProfileError"] != null)
+{
+    <div class="profile-alert-banner profile-alert-danger" id="profileAlert">
+        <i class="bi bi-exclamation-triangle-fill"></i> @TempData["ProfileError"]
+    </div>
+    <script>
+        setTimeout(() => {
+            const alert = document.getElementById("profileAlert");
+            if (alert) alert.style.display = "none";
+        }, 4000);
+    </script>
+}
+
+<script>
+    function toggleUserDropdown(event) {
+        event.stopPropagation();
+        const dropdown = document.getElementById("userDropdown");
+        dropdown.classList.toggle("show");
+    }
+
+    function openProfileModal(event) {
+        event.stopPropagation();
+        document.getElementById("userDropdown").classList.remove("show");
+        document.getElementById("profileModal").style.display = "flex";
+    }
+
+    function closeProfileModal() {
+        document.getElementById("profileModal").style.display = "none";
+    }
+
+    window.addEventListener("click", function(event) {
+        const dropdown = document.getElementById("userDropdown");
+        if (dropdown && dropdown.classList.contains("show")) {
+            dropdown.classList.remove("show");
+        }
+        const modal = document.getElementById("profileModal");
+        if (modal && event.target === modal) {
+            modal.style.display = "none";
+        }
+    });
+</script>
+<script src="/js/dark-mode.js"></script>
 </body>
 </html>

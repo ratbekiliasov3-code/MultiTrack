@@ -7,6 +7,19 @@
     string bugunNorm = bugun.Replace('İ', 'I').Replace('ı', 'i');
     var liste = Model?.Workouts ?? new List<SporAntrenman>();
     int todayIndex = Model?.TodayDayIndex ?? 0;
+    var cultureCode = LanguageHelper.GetCultureCode(Context);
+    var currentCulture = new System.Globalization.CultureInfo(cultureCode);
+    var dayNamesLocal = currentCulture.DateTimeFormat.DayNames;
+    // Map Turkish uppercase day key -> localized display name
+    var gunTurkceden = new System.Collections.Generic.Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        { "PAZARTESİ", dayNamesLocal[(int)DayOfWeek.Monday] },
+        { "SALI",      dayNamesLocal[(int)DayOfWeek.Tuesday] },
+        { "ÇARŞAMBA",  dayNamesLocal[(int)DayOfWeek.Wednesday] },
+        { "PERŞEMBE",  dayNamesLocal[(int)DayOfWeek.Thursday] },
+        { "CUMA",      dayNamesLocal[(int)DayOfWeek.Friday] },
+        { "CUMARTESİ", dayNamesLocal[(int)DayOfWeek.Saturday] },
+    };
 }
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -22,84 +35,119 @@
 
 <partial name="_DashboardHeader" />
 
-<div class="container py-4">
-
-  <div class="today-box">
-    <h4>⚡ @LanguageHelper.T(Context, "TodayAt") @bugun</h4>
+<div class="container py-5">
     
-    @if (liste.Any(m => m.Gun.ToUpper() == bugun))
-    {
-        <div class="d-flex flex-wrap gap-2 mt-2">
-            @foreach (var item in liste.Where(m => m.Gun.ToUpper() == bugun))
-            {
-                <span class="badge" style="background: #34495e; color: white; padding: 5px 15px; border-radius: 20px;">🔥 @item.AntrenmanAdi</span>
-            }
+    <!-- Top Section: Today Box + Weekly Progress -->
+    <div class="row mb-5 g-4">
+        <!-- Today Box -->
+        <div class="col-lg-6">
+            <div class="today-box h-100 d-flex flex-column justify-content-center m-0">
+                <h4 class="mb-3">⚡ @LanguageHelper.T(Context, "TodayAt") @(gunTurkceden.TryGetValue(bugun, out var bugunYerel) ? bugunYerel : bugun)</h4>
+                @if (liste.Any(m => m.Gun.ToUpper() == bugun))
+                {
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        @foreach (var item in liste.Where(m => m.Gun.ToUpper() == bugun))
+                        {
+                            <span class="badge bg-white text-dark py-2 px-3 fs-6 rounded-pill shadow-sm">
+                                🔥 @item.AntrenmanAdi
+                            </span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="mb-0 mt-2 opacity-75 fs-5">@LanguageHelper.T(Context, "NoWorkoutPlanMessage")</p>
+                }
+            </div>
         </div>
-    }
-    else
-    {
-        <p class="mb-0 mt-2">@LanguageHelper.T(Context, "NoWorkoutPlanMessage")</p>
-    }
-</div>
+        
+        <!-- Weekly Progress Card -->
+        <div class="col-lg-6">
+            <div class="card shadow-sm p-4 h-100 m-0 d-flex flex-column justify-content-center" style="border-radius: 15px;">
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="fw-bold fs-5 text-secondary">@LanguageHelper.T(Context, "WeeklyCompletionTitle")</span>
+                    <span class="fw-bold fs-4 text-success">@(Model?.WeeklyCompletionRate ?? 0)%</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">@LanguageHelper.T(Context, "TotalWorkoutsLabel")</span>
+                    <span class="fw-bold">@(Model?.TotalWeeklyWorkouts ?? 0)</span>
+                </div>
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-muted">@LanguageHelper.T(Context, "CompletedWorkoutsLabel")</span>
+                    <span class="fw-bold">@(Model?.CompletedWeeklyWorkouts ?? 0)</span>
+                </div>
+                <div class="progress mt-auto" style="height: 12px; border-radius: 6px; background-color: #e9ecef;">
+                    <div class="progress-bar bg-success progress-bar-striped progress-bar-animated" role="progressbar" style="width: @(Model?.WeeklyCompletionRate ?? 0)%" aria-valuenow="@(Model?.WeeklyCompletionRate ?? 0)" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-
-<div class="card shadow-sm p-4 mb-4" style="border-radius: 15px;">
-    <div class="d-flex justify-content-between mb-2">
-        <span class="fw-bold">@LanguageHelper.T(Context, "WeeklyCompletionTitle")</span>
-        <span class="fw-bold">@(Model?.WeeklyCompletionRate ?? 0)%</span>
-    </div>
-    <div class="d-flex justify-content-between mb-2">
-        <span>@LanguageHelper.T(Context, "TotalWorkoutsLabel")</span>
-        <span>@(Model?.TotalWeeklyWorkouts ?? 0)</span>
-    </div>
-    <div class="d-flex justify-content-between mb-2">
-        <span>@LanguageHelper.T(Context, "CompletedWorkoutsLabel")</span>
-        <span>@(Model?.CompletedWeeklyWorkouts ?? 0)</span>
-    </div>
-    <div class="progress" style="height: 10px; border-radius: 5px;">
-        <div class="progress-bar bg-success" role="progressbar" style="width: @(Model?.WeeklyCompletionRate ?? 0)%" aria-valuenow="@(Model?.WeeklyCompletionRate ?? 0)" aria-valuemin="0" aria-valuemax="100"></div>
-    </div>
-    <div class="row">
+    <!-- Weekly Plan Grid -->
+    <h4 class="mb-4 fw-bold">@LanguageHelper.T(Context, "WeeklyWorkoutPlan")</h4>
+    <div class="row g-4">
         @for (int i = 0; i < gunler.Length; i++)
         {
             var gun = gunler[i];
             string gunNorm = gun.Replace('İ', 'I').Replace('ı', 'i');
             bool isToday = string.Equals(gunNorm, bugunNorm, StringComparison.OrdinalIgnoreCase);
-            <div class="col-md-6">
-                <div class="card @(isToday ? "border border-warning" : "")">
-                   <div class="card-header @(isToday ? "bg-warning text-dark today-day" : "bg-dark")">
-    @gun
-</div>
-                    <div class="card-body">
-                        <form action="/Dashboard/AntrenmanEkle" method="post" class="input-group mb-2">
+            string gunGoster = gunTurkceden.TryGetValue(gun, out var gunYerel) ? gunYerel : gun;
+            
+            <div class="col-xl-4 col-lg-6 col-md-6">
+                <div class="card h-100 @(isToday ? "border border-warning shadow" : "shadow-sm")" style="border-radius: 12px; overflow: hidden; margin: 0;">
+                    
+                    <div class="card-header @(isToday ? "bg-warning text-dark today-day" : "bg-dark text-white") d-flex justify-content-between align-items-center" style="border-radius: 0; padding: 15px 20px;">
+                        <span class="fw-bold fs-5">@gunGoster</span>
+                        @if(isToday) { 
+                            <span class="badge bg-white text-dark rounded-pill shadow-sm">@LanguageHelper.T(Context, "TodayBadge")</span> 
+                        }
+                    </div>
+                    
+                    <div class="card-body p-4 d-flex flex-column">
+                        <form action="/Dashboard/AntrenmanEkle" method="post" class="input-group mb-3">
                             <input type="hidden" name="gun" value="@gun">
                             <input type="hidden" name="user" value="@ViewBag.Username">
-                            <input type="text" name="antrenmanAdi" class="form-control" placeholder="@LanguageHelper.T(Context, "AddPlanPlaceholder")" required>
-                            <button type="submit" class="btn btn-dark">@LanguageHelper.T(Context, "AddWorkout")</button>
+                            <input type="text" name="antrenmanAdi" class="form-control bg-light border-0" placeholder="@LanguageHelper.T(Context, "AddPlanPlaceholder")" required>
+                            <button type="submit" class="btn btn-primary px-3"><i class="bi bi-plus-lg"></i></button>
                         </form>
                         
-                        <ul class="list-group">
-    @foreach (var item in liste.Where(m => m.Gun.ToUpper() == gun))
-    {
-        <li class="list-group-item d-flex justify-content-between align-items-center">
-            <span class="@(item.IsCompleted ? "text-decoration-line-through text-muted" : "")">
-                @item.AntrenmanAdi
-            </span>
-            <div class="d-flex gap-1">
-                <form action="/Dashboard/AntrenmanTamamla" method="post">
-                    <input type="hidden" name="id" value="@item.Id">
-                    <input type="hidden" name="user" value="@ViewBag.Username">
-                    <button type="submit" class="btn btn-sm btn-success btn-action">✔</button>
-                </form>
-                <form action="/Dashboard/AntrenmanSil" method="post">
-                    <input type="hidden" name="id" value="@item.Id">
-                    <input type="hidden" name="user" value="@ViewBag.Username">
-                    <button type="submit" class="btn btn-sm btn-danger btn-action">@LanguageHelper.T(Context, "DeleteButton")</button>
-                </form>
-            </div>
-        </li>
-    }
-</ul>
+                        <ul class="list-group list-group-flush mt-2 flex-grow-1">
+                            @if (!liste.Any(m => m.Gun.ToUpper() == gun))
+                            {
+                                <li class="list-group-item text-center text-muted border-0 bg-transparent py-4">
+                                    <i class="bi bi-calendar-x fs-2 opacity-50 mb-2 d-block"></i>
+                                    <small>@LanguageHelper.T(Context, "NoWorkoutPlanMessage")</small>
+                                </li>
+                            }
+                            else
+                            {
+                                @foreach (var item in liste.Where(m => m.Gun.ToUpper() == gun))
+                                {
+                                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent border-bottom border-light px-0 py-3">
+                                        <span class="fw-medium @(item.IsCompleted ? "text-decoration-line-through text-muted opacity-75" : "")">
+                                            @if(item.IsCompleted) { <i class="bi bi-check-circle-fill text-success me-2"></i> }
+                                            else { <i class="bi bi-circle text-secondary me-2"></i> }
+                                            @item.AntrenmanAdi
+                                        </span>
+                                        <div class="d-flex gap-2">
+                                            @if(!item.IsCompleted)
+                                            {
+                                                <form action="/Dashboard/AntrenmanTamamla" method="post" class="m-0">
+                                                    <input type="hidden" name="id" value="@item.Id">
+                                                    <input type="hidden" name="user" value="@ViewBag.Username">
+                                                    <button type="submit" class="btn btn-sm btn-outline-success border-0"><i class="bi bi-check-lg fs-5"></i></button>
+                                                </form>
+                                            }
+                                            <form action="/Dashboard/AntrenmanSil" method="post" class="m-0">
+                                                <input type="hidden" name="id" value="@item.Id">
+                                                <input type="hidden" name="user" value="@ViewBag.Username">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger border-0"><i class="bi bi-trash fs-6"></i></button>
+                                            </form>
+                                        </div>
+                                    </li>
+                                }
+                            }
+                        </ul>
                     </div>
                 </div>
             </div>
